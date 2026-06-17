@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken';
 
 // ---- Env stub (must run before any module that imports env) ----
 process.env['NODE_ENV'] = 'test';
-process.env['PORT'] = '0';
+process.env['PORT'] = '3000';
 process.env['DATABASE_URL'] = 'postgresql://test:test@localhost:5432/test';
 process.env['REDIS_URL'] = 'redis://localhost:6379';
 process.env['SESSION_SECRET'] = 'test-session-secret-minimum-32-chars!!';
@@ -21,13 +21,13 @@ const barberPasswordHash = await bcrypt.hash('barber-password', 12);
 
 const DB_RECORDS = {
   owners: new Map([
-    ['owner@shop.dz', { id: 'owner-uuid', shop_id: 'shop-uuid', password_hash: ownerPasswordHash, name: 'Test Owner' }],
+    ['owner@shop.dz', { id: 'owner-uuid', shop_id: '11111111-1111-1111-1111-111111111111', password_hash: ownerPasswordHash, name: 'Test Owner' }],
   ]),
   barbers: new Map([
-    ['barber@shop.dz:shop-uuid', { id: 'barber-uuid', password_hash: barberPasswordHash, name_ar: 'باربر', name_en: 'Test Barber', shop_active: true }],
+    ['barber@shop.dz:11111111-1111-1111-1111-111111111111', { id: 'barber-uuid', password_hash: barberPasswordHash, name_ar: 'باربر', name_en: 'Test Barber', shop_active: true }],
   ]),
   shops: new Map([
-    ['active-shop', { id: 'shop-uuid', slug: 'active-shop', timezone: 'Africa/Algiers', is_active: true }],
+    ['active-shop', { id: '11111111-1111-1111-1111-111111111111', slug: 'active-shop', timezone: 'Africa/Algiers', is_active: true }],
     ['inactive-shop', { id: 'other-uuid', slug: 'inactive-shop', timezone: 'Africa/Algiers', is_active: false }],
   ]),
 };
@@ -75,16 +75,28 @@ mock.module('../config/redis.js', {
 
 mock.module('connect-redis', {
   defaultExport: class {
+    // express-session expects the store to be an EventEmitter (it calls store.on('disconnect'/'connect')).
+    on(_event: string, _cb: (...args: unknown[]) => void): void {}
     get(_sid: string, cb: (err: unknown, session: unknown) => void): void { cb(null, null); }
     set(_sid: string, _session: unknown, cb: (err: unknown) => void): void { cb(null); }
     destroy(_sid: string, cb: (err: unknown) => void): void { cb(null); }
+    touch(_sid: string, _session: unknown, cb: (err: unknown) => void): void { cb(null); }
   },
 });
 
 mock.module('rate-limit-redis', {
   namedExports: {
+    // Must implement express-rate-limit's Store interface (increment/decrement/resetKey),
+    // not just sendCommand — otherwise rateLimit() rejects it as an invalid store.
+    // increment always reports a single hit so the limiter never trips during tests.
     RedisStore: class {
-      async sendCommand(..._args: unknown[]): Promise<unknown> { return null; }
+      init(): void {}
+      async increment(): Promise<{ totalHits: number; resetTime: Date }> {
+        return { totalHits: 1, resetTime: new Date(Date.now() + 60_000) };
+      }
+      async decrement(): Promise<void> {}
+      async resetKey(): Promise<void> {}
+      async resetAll(): Promise<void> {}
     },
   },
 });
@@ -112,7 +124,7 @@ describe('Owner auth', () => {
 
     assert.equal(res.status, 200);
     assert.equal(res.body.name, 'Test Owner');
-    assert.equal(res.body.shopId, 'shop-uuid');
+    assert.equal(res.body.shopId, '11111111-1111-1111-1111-111111111111');
   });
 
   it('login wrong password returns 401', async () => {
@@ -164,18 +176,18 @@ describe('Barber auth', () => {
   it('login success returns JWT and barber info', async () => {
     const res = await request(app)
       .post('/auth/barber/login')
-      .send({ email: 'barber@shop.dz', password: 'barber-password', shopId: 'shop-uuid' });
+      .send({ email: 'barber@shop.dz', password: 'barber-password', shopId: '11111111-1111-1111-1111-111111111111' });
 
     assert.equal(res.status, 200);
     assert.ok(typeof res.body.token === 'string');
-    assert.equal(res.body.barber.shopId, 'shop-uuid');
+    assert.equal(res.body.barber.shopId, '11111111-1111-1111-1111-111111111111');
     assert.equal(res.body.barber.name, 'Test Barber');
   });
 
   it('login wrong password returns 401', async () => {
     const res = await request(app)
       .post('/auth/barber/login')
-      .send({ email: 'barber@shop.dz', password: 'wrong', shopId: 'shop-uuid' });
+      .send({ email: 'barber@shop.dz', password: 'wrong', shopId: '11111111-1111-1111-1111-111111111111' });
 
     assert.equal(res.status, 401);
   });
@@ -206,7 +218,7 @@ describe('JWT middleware', () => {
   before(async () => {
     const res = await request(app)
       .post('/auth/barber/login')
-      .send({ email: 'barber@shop.dz', password: 'barber-password', shopId: 'shop-uuid' });
+      .send({ email: 'barber@shop.dz', password: 'barber-password', shopId: '11111111-1111-1111-1111-111111111111' });
     validToken = res.body.token as string;
   });
 
@@ -216,7 +228,7 @@ describe('JWT middleware', () => {
       .set('Authorization', `Bearer ${validToken}`);
 
     assert.equal(res.status, 200);
-    assert.equal(res.body.shopId, 'shop-uuid');
+    assert.equal(res.body.shopId, '11111111-1111-1111-1111-111111111111');
   });
 
   it('missing Authorization header returns 401', async () => {
@@ -233,7 +245,7 @@ describe('JWT middleware', () => {
 
   it('expired token returns 401', async () => {
     const expired = jwt.sign(
-      { sub: 'barber-uuid', shopId: 'shop-uuid', name: 'Test' },
+      { sub: 'barber-uuid', shopId: '11111111-1111-1111-1111-111111111111', name: 'Test' },
       process.env['JWT_SECRET']!,
       { expiresIn: -1 },
     );
@@ -256,7 +268,7 @@ describe('JWT middleware', () => {
 
   it('token signed with wrong secret returns 401', async () => {
     const forged = jwt.sign(
-      { sub: 'barber-uuid', shopId: 'shop-uuid', name: 'Hacker' },
+      { sub: 'barber-uuid', shopId: '11111111-1111-1111-1111-111111111111', name: 'Hacker' },
       'totally-wrong-secret-pad-to-32-chars!!',
     );
     const res = await request(app)
@@ -280,7 +292,7 @@ describe('Tenant resolver', () => {
     const mockNext = () => { capturedShop = (mockReq as { shop?: unknown }).shop; };
 
     await tenantResolver(mockReq, mockRes, mockNext);
-    assert.deepEqual(capturedShop, { id: 'shop-uuid', slug: 'active-shop', timezone: 'Africa/Algiers' });
+    assert.deepEqual(capturedShop, { id: '11111111-1111-1111-1111-111111111111', slug: 'active-shop', timezone: 'Africa/Algiers' });
   });
 
   it('unknown slug returns 404', async () => {

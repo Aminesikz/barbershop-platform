@@ -7,7 +7,7 @@
     "dev": "nodemon --exec tsx src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "node --import tsx/esm --test src/tests/**/*.test.ts"
+    "test": "node --import tsx/esm --experimental-test-module-mocks --test src/tests/**/*.test.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
