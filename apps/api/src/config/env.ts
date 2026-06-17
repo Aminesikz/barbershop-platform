@@ -23,6 +23,18 @@ const envSchema = z.object({
 
   // Cookie domain
   COOKIE_DOMAIN: z.string().optional(),
+
+  // PII protection: keyed HMAC for phone-derived redis/dedup keys (never plain SHA-256).
+  PHONE_HMAC_SECRET: z.string().min(32),
+
+  // SECURITY: exact number of proxy hops in front of the API (CDN + LB). NEVER 'true'
+  // (that lets clients spoof X-Forwarded-For and collapses per-IP rate limits).
+  TRUST_PROXY_HOPS: z.coerce.number().int().nonnegative().default(1),
+
+  // Booking policy
+  BOOKING_HORIZON_DAYS: z.coerce.number().int().positive().default(60),
+  BOOKING_MIN_LEAD_MIN: z.coerce.number().int().nonnegative().default(0),
+  SLOT_GRANULARITY_MIN: z.coerce.number().int().positive().default(15),
 });
 
 const parsed = envSchema.safeParse(process.env);

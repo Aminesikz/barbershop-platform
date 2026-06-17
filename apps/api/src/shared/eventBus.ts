@@ -1,10 +1,11 @@
 import { EventEmitter } from 'node:events';
+import type { BookingBroadcastDTO } from '@barber/shared-types';
 
-// Stub type — filled in when the bookings module is built
 export interface BookingCreatedEvent {
   shopId: string;
   barberId: string;
-  booking: Record<string, unknown>;
+  // SECURITY: redacted broadcast shape — compiler-enforced to omit customer phone/PII.
+  booking: BookingBroadcastDTO;
 }
 
 interface EventMap {

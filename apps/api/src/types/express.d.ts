@@ -1,4 +1,5 @@
 import 'express-session';
+import type { StaffPrincipal } from '../shared/principal.js';
 
 declare module 'express-session' {
   interface SessionData {
@@ -22,5 +23,7 @@ declare module 'express' {
       shopId: string;
       name: string;
     };
+    // Set by requireStaff (owner session OR barber JWT, scoped to req.shop).
+    staff?: StaffPrincipal;
   }
 }

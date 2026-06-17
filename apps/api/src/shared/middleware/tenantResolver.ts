@@ -24,25 +24,31 @@ export async function tenantResolver(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  const slug = extractSlug(req);
+  try {
+    const slug = extractSlug(req);
 
-  if (!slug) {
-    res.status(400).json({ error: 'Shop slug could not be determined' });
-    return;
+    if (!slug) {
+      res.status(400).json({ error: 'Shop slug could not be determined' });
+      return;
+    }
+
+    const result = await pool.query<ShopRow>(
+      'SELECT id, slug, timezone, is_active FROM shops WHERE slug = $1',
+      [slug],
+    );
+
+    const shop = result.rows[0];
+
+    if (!shop || !shop.is_active) {
+      res.status(404).json({ error: 'Shop not found' });
+      return;
+    }
+
+    req.shop = { id: shop.id, slug: shop.slug, timezone: shop.timezone };
+    next();
+  } catch (err) {
+    // SECURITY: tenantResolver runs first on every /api request; Express 4 does not
+    // catch async rejections, so forward DB errors to the central errorHandler.
+    next(err);
   }
-
-  const result = await pool.query<ShopRow>(
-    'SELECT id, slug, timezone, is_active FROM shops WHERE slug = $1',
-    [slug],
-  );
-
-  const shop = result.rows[0];
-
-  if (!shop || !shop.is_active) {
-    res.status(404).json({ error: 'Shop not found' });
-    return;
-  }
-
-  req.shop = { id: shop.id, slug: shop.slug, timezone: shop.timezone };
-  next();
 }

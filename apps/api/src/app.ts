@@ -9,9 +9,20 @@ import { RedisStore as RLRedisStore } from 'rate-limit-redis';
 import { env } from './config/env.js';
 import { redis } from './config/redis.js';
 import { authRouter } from './modules/auth/auth.router.js';
+import { tenantResolver } from './shared/middleware/tenantResolver.js';
+import { servicesRouter } from './modules/services/services.router.js';
+import { workingHoursRouter } from './modules/working-hours/workingHours.router.js';
+import { timeOffRouter } from './modules/time-off/timeOff.router.js';
+import { availabilityRouter } from './modules/availability/availability.router.js';
+import { bookingsRouter } from './modules/bookings/bookings.router.js';
 import { errorHandler } from './shared/middleware/errorHandler.js';
 
 const app = express();
+
+// SECURITY: exact proxy-hop count so req.ip is the real client IP behind the CDN/LB.
+// NEVER `true` (clients could spoof X-Forwarded-For); without it per-IP rate limits
+// collapse every client into the proxy's single bucket.
+app.set('trust proxy', env.TRUST_PROXY_HOPS);
 
 // SECURITY: helmet with explicit CSP
 app.use(
@@ -93,6 +104,13 @@ app.use(
 
 // Routes
 app.use('/auth', authRouter);
+
+// Booking domain — every /api route is tenant-scoped via tenantResolver (sets req.shop).
+app.use('/api/services', tenantResolver, servicesRouter);
+app.use('/api/working-hours', tenantResolver, workingHoursRouter);
+app.use('/api/time-off', tenantResolver, timeOffRouter);
+app.use('/api/availability', tenantResolver, availabilityRouter);
+app.use('/api/bookings', tenantResolver, bookingsRouter);
 
 // Central error handler must be last
 app.use(errorHandler);

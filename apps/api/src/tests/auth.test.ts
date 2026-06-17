@@ -14,6 +14,7 @@ process.env['SESSION_MAX_AGE_MS'] = '86400000';
 process.env['JWT_SECRET'] = 'test-jwt-secret-minimum-32-chars!!!!!';
 process.env['JWT_EXPIRES_IN'] = '1h';
 process.env['ALLOWED_ORIGIN_PATTERN'] = '*.platform.dz';
+process.env['PHONE_HMAC_SECRET'] = 'test-phone-hmac-secret-minimum-32-chars!!';
 
 // ---- Fixtures ----
 const ownerPasswordHash = await bcrypt.hash('correct-password', 12);
@@ -58,6 +59,9 @@ mock.module('../config/db.js', {
       on: () => {},
     },
     testConnection: async () => {},
+    // Booking modules import this; auth tests never invoke it, so a passthrough stub suffices.
+    withTransaction: async (fn: (client: unknown) => Promise<unknown>) =>
+      fn({ query: async () => ({ rows: [], rowCount: 0 }) }),
   },
 });
 
