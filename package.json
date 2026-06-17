@@ -1,0 +1,12 @@
+{
+  "name": "@barber/root",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=apps/api",
+    "test:api": "npm test --workspace=apps/api"
+  }
+}
