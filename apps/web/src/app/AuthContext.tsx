@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
-import { api, setBarberToken, getBarberToken } from '../api';
+import { api, setBarberToken, getBarberToken, getShopSlug } from '../api';
 
 export interface Principal {
   kind: 'owner' | 'barber';
@@ -36,20 +36,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     setLoading(true);
+    // Resolve this app's pinned shop once. If it's missing/inactive, nobody is
+    // signed in (every tenant-scoped call would 404 anyway).
+    let shopId: string | null = null;
     try {
-      const me = await api<MeResponse>('/auth/owner/me');
-      setPrincipal({ kind: 'owner', id: me.id, name: me.name, shopId: me.shopId });
-      return;
+      const { shop } = await api<{ shop: { id: string } }>('/api/shop');
+      shopId = shop.id;
     } catch {
-      /* not an owner */
+      shopId = null;
     }
-    if (getBarberToken()) {
+
+    if (shopId) {
       try {
-        const me = await api<MeResponse>('/auth/barber/me');
-        setPrincipal({ kind: 'barber', id: me.id, name: me.name, shopId: me.shopId });
-        return;
+        const me = await api<MeResponse>('/auth/owner/me');
+        if (me.shopId === shopId) {
+          setPrincipal({ kind: 'owner', id: me.id, name: me.name, shopId: me.shopId });
+          return;
+        }
+        // Session belongs to a DIFFERENT shop than this build serves — drop it so we
+        // never render another shop's (empty) console.
+        await api('/auth/owner/logout', { method: 'POST' }).catch(() => undefined);
       } catch {
-        setBarberToken(null);
+        /* not an owner */
+      }
+      if (getBarberToken()) {
+        try {
+          const me = await api<MeResponse>('/auth/barber/me');
+          if (me.shopId === shopId) {
+            setPrincipal({ kind: 'barber', id: me.id, name: me.name, shopId: me.shopId });
+            return;
+          }
+          setBarberToken(null);
+        } catch {
+          setBarberToken(null);
+        }
       }
     }
     setPrincipal(null);
@@ -61,10 +81,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginOwner = useCallback(async (email: string, password: string) => {
     setBarberToken(null); // owner mode uses the session cookie only
+    // Resolve THIS app's pinned shop first — a missing/inactive shop 404s here with
+    // "Shop not found" before we even authenticate.
+    const { shop } = await api<{ shop: { id: string } }>('/api/shop');
     const r = await api<{ name: string; shopId: string }>('/auth/owner/login', {
       method: 'POST',
       body: { email, password },
     });
+    // The credentials may be valid but for a DIFFERENT shop. Reject instead of
+    // dropping them into an empty console that 404s on every tenant-scoped call.
+    if (r.shopId !== shop.id) {
+      await api('/auth/owner/logout', { method: 'POST' }).catch(() => undefined);
+      throw new Error(`This account doesn't manage ${getShopSlug()}.`);
+    }
     // /me gives us the owner id too
     const me = await api<MeResponse>('/auth/owner/me');
     setPrincipal({ kind: 'owner', id: me.id, name: r.name, shopId: r.shopId });

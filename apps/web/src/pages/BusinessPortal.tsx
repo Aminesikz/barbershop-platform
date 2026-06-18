@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../app/AuthContext';
 import { useToast } from '../components/Toast';
-import { errorMessage, getShopSlug, setShopSlug } from '../api';
+import { errorMessage, getShopSlug } from '../api';
+import { titleCase } from '../util';
 import { Button, Card, Field, Input } from '../components/ui';
 import { BUSINESS_PITCH, DEVELOPER_CONTACT } from '../content';
 
@@ -17,10 +18,11 @@ export function BusinessPortal() {
   const toast = useToast();
 
   const [role, setRole] = useState<Role>('owner');
-  const [slug, setSlug] = useState(getShopSlug());
   const [email, setEmail] = useState(DEMO.owner.email);
   const [password, setPassword] = useState(DEMO.owner.password);
   const [busy, setBusy] = useState(false);
+
+  const shopName = titleCase(getShopSlug());
 
   const switchRole = (r: Role) => {
     setRole(r);
@@ -32,7 +34,6 @@ export function BusinessPortal() {
     e.preventDefault();
     setBusy(true);
     try {
-      setShopSlug(slug.trim());
       if (role === 'owner') await loginOwner(email, password);
       else await loginBarber(email, password);
       toast(`Signed in as ${role}`, 'success');
@@ -49,7 +50,9 @@ export function BusinessPortal() {
     <div className="page">
       <div className="page-head">
         <h1>Business sign in</h1>
-        <p>Owners and barbers — manage your shop’s bookings, services and schedule.</p>
+        <p>
+          Owners and barbers — manage <strong>{shopName}</strong>: bookings, services and schedule.
+        </p>
       </div>
 
       <Card>
@@ -64,9 +67,6 @@ export function BusinessPortal() {
           </div>
 
           <form className="stack" onSubmit={submit}>
-            <Field label="Shop">
-              <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="algiers-cuts" spellCheck={false} />
-            </Field>
             <Field label="Email">
               <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" />
             </Field>

@@ -1,14 +1,17 @@
 // Thin fetch wrapper. The Vite dev proxy forwards /api and /auth to the Express API,
 // so this is same-origin: the owner session cookie works and there's no CORS.
 
-const SHOP_KEY = 'barber.shopSlug';
 const TOKEN_KEY = 'barber.token';
 
+// apps/web is pinned to a SINGLE shop, fixed at build time via VITE_SHOP_SLUG
+// (defaults to the dev seed shop). This replaces the old user-editable slug that
+// the business login wrote to localStorage — that let any typed value through (so a
+// bogus shop + correct credentials dropped you into an empty, 404-ing console) and
+// bled into the public page's name. One deployment / link == one shop.
+const SHOP_SLUG = (import.meta.env.VITE_SHOP_SLUG ?? '').trim() || 'algiers-cuts';
+
 export function getShopSlug(): string {
-  return localStorage.getItem(SHOP_KEY) ?? 'algiers-cuts';
-}
-export function setShopSlug(slug: string): void {
-  localStorage.setItem(SHOP_KEY, slug);
+  return SHOP_SLUG;
 }
 
 export function getBarberToken(): string | null {
