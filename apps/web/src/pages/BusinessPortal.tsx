@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../app/AuthContext';
 import { useToast } from '../components/Toast';
-import { errorMessage, getShopSlug } from '../api';
+import { errorMessage } from '../api';
 import { titleCase } from '../util';
 import { Button, Card, Field, Input } from '../components/ui';
 import { BUSINESS_PITCH, DEVELOPER_CONTACT } from '../content';
@@ -14,7 +14,7 @@ const DEMO: Record<Role, { email: string; password: string }> = {
 };
 
 export function BusinessPortal() {
-  const { loginOwner, loginBarber } = useAuth();
+  const { loginOwner, loginBarber, shop } = useAuth();
   const toast = useToast();
 
   const [role, setRole] = useState<Role>('owner');
@@ -22,7 +22,7 @@ export function BusinessPortal() {
   const [password, setPassword] = useState(DEMO.owner.password);
   const [busy, setBusy] = useState(false);
 
-  const shopName = titleCase(getShopSlug());
+  const shopName = shop?.name ?? titleCase(shop?.slug ?? '');
 
   const switchRole = (r: Role) => {
     setRole(r);

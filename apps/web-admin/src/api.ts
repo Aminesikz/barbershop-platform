@@ -1,6 +1,10 @@
 // Admin API client. Talks only to the global /admin + /auth/admin endpoints — no
 // X-Shop-Slug (admin is not tenant-scoped), no barber bearer token. Session cookie only.
 
+// API origin. Local dev: '' → same-origin (Vite proxies /admin,/auth/admin to :3000).
+// Production: https://api.platform.dz (the admin app is served from admin.platform.dz).
+const API_BASE = (import.meta.env.VITE_API_BASE ?? '').trim().replace(/\/+$/, '');
+
 export class ApiError extends Error {
   status: number;
   details: unknown;
@@ -20,7 +24,7 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
   const headers: Record<string, string> = {};
   if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
 
-  const res = await fetch(path, {
+  const res = await fetch(`${API_BASE}${path}`, {
     method: opts.method ?? 'GET',
     headers,
     body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,

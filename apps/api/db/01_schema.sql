@@ -8,6 +8,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TABLE shops (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   slug       text        NOT NULL UNIQUE,
+  name       text,        -- display name; nullable for shops created before this column
   timezone   text        NOT NULL DEFAULT 'Africa/Algiers',
   is_active  boolean     NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now()

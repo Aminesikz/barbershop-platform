@@ -11,6 +11,7 @@ export function ShopsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const [slug, setSlug] = useState('');
+  const [name, setName] = useState('');
   const [timezone, setTimezone] = useState('Africa/Algiers');
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
@@ -32,10 +33,11 @@ export function ShopsPage() {
     try {
       await api('/admin/shops', {
         method: 'POST',
-        body: { slug, timezone, ownerName, ownerEmail, ownerPassword },
+        body: { slug, name, timezone, ownerName, ownerEmail, ownerPassword },
       });
       toast('Shop created', 'success');
       setSlug('');
+      setName('');
       setOwnerName('');
       setOwnerEmail('');
       setOwnerPassword('');
@@ -79,6 +81,9 @@ export function ShopsPage() {
             <Field label="Slug (subdomain)">
               <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="oran-fades" spellCheck={false} required />
             </Field>
+            <Field label="Shop name">
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Oran Fades" required />
+            </Field>
             <Field label="Timezone">
               <Input value={timezone} onChange={(e) => setTimezone(e.target.value)} />
             </Field>
@@ -117,6 +122,7 @@ export function ShopsPage() {
               <thead>
                 <tr>
                   <th>Slug</th>
+                  <th>Name</th>
                   <th>Owner</th>
                   <th>Timezone</th>
                   <th>Status</th>
@@ -127,6 +133,7 @@ export function ShopsPage() {
                 {shops.map((s) => (
                   <tr key={s.id}>
                     <td className="cell-strong">{s.slug}</td>
+                    <td className="cell-muted">{s.name ?? '—'}</td>
                     <td className="cell-muted">{s.ownerEmail ?? '—'}</td>
                     <td className="cell-muted">{s.timezone}</td>
                     <td>

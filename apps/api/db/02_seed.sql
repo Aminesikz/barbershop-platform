@@ -11,9 +11,9 @@
 INSERT INTO platform_admins (email, password_hash, name) VALUES
   ('admin@platform.dz', crypt('AdminPass123!', gen_salt('bf', 12)), 'Platform Admin');
 
-INSERT INTO shops (slug, timezone, is_active) VALUES
-  ('algiers-cuts', 'Africa/Algiers', true),
-  ('closed-shop',  'Africa/Algiers', false);
+INSERT INTO shops (slug, name, timezone, is_active) VALUES
+  ('algiers-cuts', 'Algiers Cuts', 'Africa/Algiers', true),
+  ('closed-shop',  'Closed Shop',  'Africa/Algiers', false);
 
 INSERT INTO shop_owners (shop_id, email, password_hash, name)
 SELECT id, 'owner@algiers-cuts.dz', crypt('OwnerPass123!', gen_salt('bf', 12)), 'Karim Benali'

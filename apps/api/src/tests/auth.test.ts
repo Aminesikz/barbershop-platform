@@ -28,8 +28,8 @@ const DB_RECORDS = {
     ['barber@shop.dz:11111111-1111-1111-1111-111111111111', { id: 'barber-uuid', password_hash: barberPasswordHash, name_ar: 'باربر', name_en: 'Test Barber', shop_active: true }],
   ]),
   shops: new Map([
-    ['active-shop', { id: '11111111-1111-1111-1111-111111111111', slug: 'active-shop', timezone: 'Africa/Algiers', is_active: true }],
-    ['inactive-shop', { id: 'other-uuid', slug: 'inactive-shop', timezone: 'Africa/Algiers', is_active: false }],
+    ['active-shop', { id: '11111111-1111-1111-1111-111111111111', slug: 'active-shop', name: 'Active Shop', timezone: 'Africa/Algiers', is_active: true }],
+    ['inactive-shop', { id: 'other-uuid', slug: 'inactive-shop', name: 'Inactive Shop', timezone: 'Africa/Algiers', is_active: false }],
   ]),
 };
 
@@ -296,7 +296,7 @@ describe('Tenant resolver', () => {
     const mockNext = () => { capturedShop = (mockReq as { shop?: unknown }).shop; };
 
     await tenantResolver(mockReq, mockRes, mockNext);
-    assert.deepEqual(capturedShop, { id: '11111111-1111-1111-1111-111111111111', slug: 'active-shop', timezone: 'Africa/Algiers' });
+    assert.deepEqual(capturedShop, { id: '11111111-1111-1111-1111-111111111111', slug: 'active-shop', timezone: 'Africa/Algiers', name: 'Active Shop' });
   });
 
   it('unknown slug returns 404', async () => {

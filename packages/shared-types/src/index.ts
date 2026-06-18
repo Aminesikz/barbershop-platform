@@ -4,6 +4,7 @@ export interface Shop {
   id: string;
   slug: string;
   timezone: string;
+  name: string | null; // display name; null for shops created before the column existed
 }
 
 export interface OwnerSession {
@@ -53,6 +54,7 @@ export interface BarberAdminDTO {
 export interface AdminShopDTO {
   id: string;
   slug: string;
+  name: string | null;
   timezone: string;
   isActive: boolean;
   createdAt: string;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ServiceDTO, BarberDTO, AvailabilityDTO, PublicBookingDTO } from '@barber/shared-types';
-import { api, errorMessage, getShopSlug } from '../api';
+import { api, errorMessage } from '../api';
+import { useAuth } from '../app/AuthContext';
 import { useToast } from '../components/Toast';
 import { Avatar, Button, Card, Field, Input, Select, Spinner, Stars } from '../components/ui';
 import { fmtTime, fmtDateTime, todayPlus, uuid, serviceLabel, titleCase } from '../util';
@@ -12,8 +13,9 @@ function scrollToBooking() {
 
 export function BookPage() {
   const toast = useToast();
-  const shopName = titleCase(getShopSlug());
-  const [tz, setTz] = useState('Africa/Algiers');
+  const { shop } = useAuth();
+  const shopName = shop?.name ?? titleCase(shop?.slug ?? '');
+  const tz = shop?.timezone ?? 'Africa/Algiers';
   const [services, setServices] = useState<ServiceDTO[]>([]);
   const [barbers, setBarbers] = useState<BarberDTO[]>([]);
   const [loadingMeta, setLoadingMeta] = useState(true);
@@ -34,12 +36,10 @@ export function BookPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const [shop, svc, brb] = await Promise.all([
-          api<{ shop: { timezone: string } }>('/api/shop'),
+        const [svc, brb] = await Promise.all([
           api<{ services: ServiceDTO[] }>('/api/services'),
           api<{ barbers: BarberDTO[] }>('/api/barbers'),
         ]);
-        setTz(shop.shop.timezone);
         setServices(svc.services);
         setBarbers(brb.barbers);
       } catch (err) {

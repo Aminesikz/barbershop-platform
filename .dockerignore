@@ -1,0 +1,11 @@
+# Build context is the repo root (docker build -f apps/api/Dockerfile .).
+# Keep host-specific and bulky paths out so `npm ci` installs cleanly for linux.
+**/node_modules
+**/dist
+.git
+**/.env
+**/.env.*
+**/*.log
+apps/web/dist
+apps/web-admin/dist
+.claude

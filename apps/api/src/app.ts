@@ -34,8 +34,11 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
-        // SECURITY: restrict connect-src to known WS origin; tighten ALLOWED_ORIGIN_PATTERN in prod
-        connectSrc: ["'self'", env.ALLOWED_ORIGIN_PATTERN],
+        // The API serves JSON only — the frontends are served separately (Vercel), so
+        // this CSP governs API responses, not the booking page. The page's own
+        // connect-src (to api.* + wss://api.*) is set by the frontend host. Keeping
+        // 'self' here avoids emitting an invalid wildcard directive.
+        connectSrc: ["'self'"],
         objectSrc: ["'none'"],
         frameAncestors: ["'none'"],
       },

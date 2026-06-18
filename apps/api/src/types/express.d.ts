@@ -22,6 +22,7 @@ declare module 'express' {
       id: string;
       slug: string;
       timezone: string;
+      name: string | null;
     };
     barber?: {
       id: string;

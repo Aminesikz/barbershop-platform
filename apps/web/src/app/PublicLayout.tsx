@@ -1,5 +1,5 @@
 import { Link, Outlet } from 'react-router-dom';
-import { getShopSlug } from '../api';
+import { useAuth } from './AuthContext';
 import { titleCase } from '../util';
 import { Footer } from '../components/Footer';
 
@@ -8,7 +8,8 @@ import { Footer } from '../components/Footer';
  * booking page is "For your business" (staff/admin live elsewhere).
  */
 export function PublicLayout() {
-  const shopName = titleCase(getShopSlug());
+  const { shop } = useAuth();
+  const shopName = shop?.name ?? titleCase(shop?.slug ?? '');
   return (
     <>
       <header className="app-header">
