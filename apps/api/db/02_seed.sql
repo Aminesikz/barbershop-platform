@@ -2,9 +2,14 @@
 -- which Node's bcrypt.compare verifies fine ($2a$ and $2b$ are compatible).
 --
 -- Demo credentials:
---   Owner : owner@algiers-cuts.dz / OwnerPass123!
---   Barber: barber@algiers-cuts.dz / BarberPass123!
+--   Owner       : owner@algiers-cuts.dz / OwnerPass123!
+--   Barber      : barber@algiers-cuts.dz / BarberPass123!
+--   Platform admin: admin@platform.dz / AdminPass123!   (TEMP — change after first login)
 --   Active shop slug: algiers-cuts   |  Inactive shop slug: closed-shop
+
+-- Platform super-admin (manages all shops via the separate admin app).
+INSERT INTO platform_admins (email, password_hash, name) VALUES
+  ('admin@platform.dz', crypt('AdminPass123!', gen_salt('bf', 12)), 'Platform Admin');
 
 INSERT INTO shops (slug, timezone, is_active) VALUES
   ('algiers-cuts', 'Africa/Algiers', true),

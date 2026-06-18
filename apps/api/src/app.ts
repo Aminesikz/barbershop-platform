@@ -10,11 +10,14 @@ import { env } from './config/env.js';
 import { redis } from './config/redis.js';
 import { authRouter } from './modules/auth/auth.router.js';
 import { tenantResolver } from './shared/middleware/tenantResolver.js';
+import { getShop } from './shared/reqContext.js';
+import { barbersRouter } from './modules/barbers/barbers.router.js';
 import { servicesRouter } from './modules/services/services.router.js';
 import { workingHoursRouter } from './modules/working-hours/workingHours.router.js';
 import { timeOffRouter } from './modules/time-off/timeOff.router.js';
 import { availabilityRouter } from './modules/availability/availability.router.js';
 import { bookingsRouter } from './modules/bookings/bookings.router.js';
+import { adminAuthRouter, adminRouter } from './modules/admin/admin.router.js';
 import { errorHandler } from './shared/middleware/errorHandler.js';
 
 const app = express();
@@ -105,7 +108,16 @@ app.use(
 // Routes
 app.use('/auth', authRouter);
 
+// Platform admin — separate auth boundary, NOT tenant-scoped (no tenantResolver).
+app.use('/auth/admin', adminAuthRouter);
+app.use('/admin', adminRouter);
+
 // Booking domain — every /api route is tenant-scoped via tenantResolver (sets req.shop).
+// Resolve the current shop (slug → id/timezone) for clients that only know the slug.
+app.get('/api/shop', tenantResolver, (req, res) => {
+  res.json({ shop: getShop(req) });
+});
+app.use('/api/barbers', tenantResolver, barbersRouter);
 app.use('/api/services', tenantResolver, servicesRouter);
 app.use('/api/working-hours', tenantResolver, workingHoursRouter);
 app.use('/api/time-off', tenantResolver, timeOffRouter);

@@ -23,7 +23,7 @@ export async function verifyOwnerCredentials(
   password: string,
 ): Promise<OwnerLoginResult | null> {
   const result = await pool.query<OwnerRow>(
-    'SELECT id, shop_id, password_hash, name FROM shop_owners WHERE email = $1',
+    'SELECT id, shop_id, password_hash, name FROM shop_owners WHERE email = $1 AND is_active',
     [email],
   );
 

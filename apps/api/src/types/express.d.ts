@@ -8,6 +8,11 @@ declare module 'express-session' {
       shopId: string;
       name: string;
     };
+    // Platform super-admin (separate boundary; never carries a shopId).
+    platformAdmin?: {
+      id: string;
+      name: string;
+    };
   }
 }
 

@@ -19,6 +19,18 @@ CREATE TABLE shop_owners (
   email         text        NOT NULL UNIQUE,
   password_hash text        NOT NULL,
   name          text        NOT NULL,
+  is_active     boolean     NOT NULL DEFAULT true,
+  created_at    timestamptz NOT NULL DEFAULT now()
+);
+
+-- Platform super-admins (the software operator). NOT tied to any shop — manages all
+-- shops across tenants via the non-tenant-scoped /admin API.
+CREATE TABLE platform_admins (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email         text        NOT NULL UNIQUE,
+  password_hash text        NOT NULL,
+  name          text        NOT NULL,
+  is_active     boolean     NOT NULL DEFAULT true,
   created_at    timestamptz NOT NULL DEFAULT now()
 );
 

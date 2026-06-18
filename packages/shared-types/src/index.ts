@@ -25,6 +25,25 @@ export interface BarberToken {
 export type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
 export type BookingSource = 'public' | 'owner' | 'barber';
 
+export interface BarberDTO {
+  id: string;
+  nameAr: string;
+  nameEn: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Platform admin (cross-tenant, managed by the separate admin app)
+// ---------------------------------------------------------------------------
+
+export interface AdminShopDTO {
+  id: string;
+  slug: string;
+  timezone: string;
+  isActive: boolean;
+  createdAt: string;
+  ownerEmail: string | null;
+}
+
 export interface ServiceDTO {
   id: string;
   shopId: string;
