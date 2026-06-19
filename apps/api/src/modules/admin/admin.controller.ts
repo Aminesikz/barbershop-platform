@@ -11,6 +11,7 @@ const createShopSchema = z
       .min(2)
       .max(50)
       .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers and hyphens'),
+    name: z.string().trim().min(2).max(120),
     timezone: z.string().min(1).max(64).optional(),
     ownerEmail: z.string().email(),
     ownerName: z.string().trim().min(2).max(100),
@@ -36,6 +37,7 @@ export async function createShop(req: Request, res: Response): Promise<void> {
   const b = createShopSchema.parse(req.body);
   const shop = await svc.createShopWithOwner({
     slug: b.slug,
+    name: b.name,
     timezone: b.timezone ?? 'Africa/Algiers',
     ownerEmail: b.ownerEmail,
     ownerName: b.ownerName,

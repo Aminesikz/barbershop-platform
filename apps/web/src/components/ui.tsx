@@ -55,8 +55,8 @@ export function Card({ children, className }: { children: ReactNode; className?:
   return <div className={['card', className ?? ''].filter(Boolean).join(' ')}>{children}</div>;
 }
 
-export function Badge({ status }: { status: string }) {
-  return <span className={`badge badge-${status}`}>{status.replace('_', ' ')}</span>;
+export function Badge({ status, label }: { status: string; label?: string }) {
+  return <span className={`badge badge-${status}`}>{label ?? status.replace('_', ' ')}</span>;
 }
 
 export function Spinner() {

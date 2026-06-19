@@ -36,6 +36,7 @@ mock.module('../config/db.js', {
               {
                 id: 'shop-1',
                 slug: 'algiers-cuts',
+                name: 'Algiers Cuts',
                 timezone: 'Africa/Algiers',
                 is_active: true,
                 created_at: new Date(),
@@ -64,7 +65,14 @@ mock.module('../config/db.js', {
             }
             return {
               rows: [
-                { id: 'new-1', slug: params[0], timezone: params[1], is_active: true, created_at: new Date() },
+                {
+                  id: 'new-1',
+                  slug: params[0],
+                  name: params[1],
+                  timezone: params[2],
+                  is_active: true,
+                  created_at: new Date(),
+                },
               ],
             };
           }
@@ -189,9 +197,10 @@ describe('Platform admin API', () => {
     await agent.post('/auth/admin/login').send({ email: 'admin@test.dz', password: 'admin-pass' });
     const res = await agent
       .post('/admin/shops')
-      .send({ slug: 'oran-fades', ownerEmail: 'o@oran.dz', ownerName: 'Sami', ownerPassword: 'OranPass123!' });
+      .send({ slug: 'oran-fades', name: 'Oran Fades', ownerEmail: 'o@oran.dz', ownerName: 'Sami', ownerPassword: 'OranPass123!' });
     assert.equal(res.status, 201);
     assert.equal(res.body.shop.slug, 'oran-fades');
+    assert.equal(res.body.shop.name, 'Oran Fades');
     assert.equal(res.body.shop.ownerEmail, 'o@oran.dz');
   });
 
@@ -200,7 +209,7 @@ describe('Platform admin API', () => {
     await agent.post('/auth/admin/login').send({ email: 'admin@test.dz', password: 'admin-pass' });
     const res = await agent
       .post('/admin/shops')
-      .send({ slug: 'dup-shop', ownerEmail: 'o@dup.dz', ownerName: 'Zed', ownerPassword: 'ZedPass123!' });
+      .send({ slug: 'dup-shop', name: 'Dup Shop', ownerEmail: 'o@dup.dz', ownerName: 'Zed', ownerPassword: 'ZedPass123!' });
     assert.equal(res.status, 409);
   });
 
@@ -209,7 +218,7 @@ describe('Platform admin API', () => {
     await agent.post('/auth/admin/login').send({ email: 'admin@test.dz', password: 'admin-pass' });
     const res = await agent
       .post('/admin/shops')
-      .send({ slug: 'Bad Slug!', ownerEmail: 'o@x.dz', ownerName: 'Zed', ownerPassword: 'ZedPass123!' });
+      .send({ slug: 'Bad Slug!', name: 'Bad Slug', ownerEmail: 'o@x.dz', ownerName: 'Zed', ownerPassword: 'ZedPass123!' });
     assert.equal(res.status, 400);
   });
 });

@@ -9,6 +9,7 @@ import type { AdminShopDTO } from '@barber/shared-types';
 interface ShopRow {
   id: string;
   slug: string;
+  name: string | null;
   timezone: string;
   is_active: boolean;
   created_at: Date;
@@ -19,6 +20,7 @@ function toDTO(r: ShopRow): AdminShopDTO {
   return {
     id: r.id,
     slug: r.slug,
+    name: r.name,
     timezone: r.timezone,
     isActive: r.is_active,
     createdAt: r.created_at.toISOString(),
@@ -34,7 +36,7 @@ const OWNER_EMAIL_SUBQUERY = `(
 
 export async function listShops(): Promise<AdminShopDTO[]> {
   const { rows } = await pool.query<ShopRow>(
-    `SELECT s.id, s.slug, s.timezone, s.is_active, s.created_at, ${OWNER_EMAIL_SUBQUERY} AS owner_email
+    `SELECT s.id, s.slug, s.name, s.timezone, s.is_active, s.created_at, ${OWNER_EMAIL_SUBQUERY} AS owner_email
      FROM shops s ORDER BY s.created_at DESC`,
   );
   return rows.map(toDTO);
@@ -42,6 +44,7 @@ export async function listShops(): Promise<AdminShopDTO[]> {
 
 export interface CreateShopInput {
   slug: string;
+  name: string;
   timezone: string;
   ownerEmail: string;
   ownerName: string;
@@ -53,9 +56,9 @@ export async function createShopWithOwner(input: CreateShopInput): Promise<Admin
   try {
     return await withTransaction(async (client) => {
       const shopRes = await client.query<Omit<ShopRow, 'owner_email'>>(
-        `INSERT INTO shops (slug, timezone) VALUES ($1, $2)
-         RETURNING id, slug, timezone, is_active, created_at`,
-        [input.slug, input.timezone],
+        `INSERT INTO shops (slug, name, timezone) VALUES ($1, $2, $3)
+         RETURNING id, slug, name, timezone, is_active, created_at`,
+        [input.slug, input.name, input.timezone],
       );
       const shop = shopRes.rows[0];
       if (!shop) throw new Error('shop INSERT returned no row');
@@ -98,7 +101,7 @@ export async function updateShop(id: string, patch: UpdateShopInput): Promise<Ad
   vals.push(id);
   const updated = await pool.query<Omit<ShopRow, 'owner_email'>>(
     `UPDATE shops SET ${sets.join(', ')} WHERE id = $${i}
-     RETURNING id, slug, timezone, is_active, created_at`,
+     RETURNING id, slug, name, timezone, is_active, created_at`,
     vals,
   );
   const shop = updated.rows[0];

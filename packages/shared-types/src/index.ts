@@ -4,6 +4,7 @@ export interface Shop {
   id: string;
   slug: string;
   timezone: string;
+  name: string | null; // display name; null for shops created before the column existed
 }
 
 export interface OwnerSession {
@@ -31,6 +32,21 @@ export interface BarberDTO {
   nameEn: string | null;
 }
 
+/**
+ * Owner-facing barber row — INCLUDES email and the per-shop active flag.
+ * Owner-only (returned from the management endpoints, never the public list).
+ * `isActive` is `barber_shops.is_active` for THIS shop (membership), not the
+ * person-level `barbers.is_active`.
+ */
+export interface BarberAdminDTO {
+  id: string;
+  email: string;
+  nameAr: string;
+  nameEn: string | null;
+  isActive: boolean;
+  createdAt: string; // ISO-8601 UTC
+}
+
 // ---------------------------------------------------------------------------
 // Platform admin (cross-tenant, managed by the separate admin app)
 // ---------------------------------------------------------------------------
@@ -38,6 +54,7 @@ export interface BarberDTO {
 export interface AdminShopDTO {
   id: string;
   slug: string;
+  name: string | null;
   timezone: string;
   isActive: boolean;
   createdAt: string;

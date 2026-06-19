@@ -1,23 +1,29 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import type { ServiceDTO, BarberDTO, WorkingHourDTO, TimeOffDTO } from '@barber/shared-types';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import type { ServiceDTO, BarberDTO, BarberAdminDTO, WorkingHourDTO, TimeOffDTO } from '@barber/shared-types';
 import { api, errorMessage } from '../api';
 import { useAuth, type Principal } from '../app/AuthContext';
 import { useToast } from '../components/Toast';
 import { Badge, Button, Card, Empty, Field, Input, Select, Spinner } from '../components/ui';
 import { WEEKDAYS, fmtDateTime, hhmmToMinutes, minutesToHHMM, serviceLabel } from '../util';
 
-type Tab = 'services' | 'hours' | 'timeoff';
+type Tab = 'barbers' | 'services' | 'hours' | 'timeoff';
 
 export function AdminPage() {
   const { principal } = useAuth();
-  const [tab, setTab] = useState<Tab>(principal?.kind === 'owner' ? 'services' : 'hours');
+  const [tab, setTab] = useState<Tab>(principal?.kind === 'owner' ? 'barbers' : 'hours');
   const [barbers, setBarbers] = useState<BarberDTO[]>([]);
 
-  useEffect(() => {
+  // Active barbers — feeds the Working hours / Time off pickers. Reloaded when the
+  // owner adds or (de)activates a barber so the pickers stay in sync.
+  const loadBarbers = useCallback(() => {
     void api<{ barbers: BarberDTO[] }>('/api/barbers')
       .then((r) => setBarbers(r.barbers))
       .catch(() => setBarbers([]));
   }, []);
+
+  useEffect(() => {
+    loadBarbers();
+  }, [loadBarbers]);
 
   if (!principal) return null;
 
@@ -31,18 +37,164 @@ export function AdminPage() {
     <div className="page">
       <div className="page-head">
         <h1>Admin</h1>
-        <p>Manage your shop’s services, schedules and time off.</p>
+        <p>Manage your shop’s barbers, services, schedules and time off.</p>
       </div>
 
       <div className="row-wrap" style={{ marginBottom: 18 }}>
+        {principal.kind === 'owner' ? tabBtn('barbers', 'Barbers') : null}
         {principal.kind === 'owner' ? tabBtn('services', 'Services') : null}
         {tabBtn('hours', 'Working hours')}
         {tabBtn('timeoff', 'Time off')}
       </div>
 
+      {tab === 'barbers' && principal.kind === 'owner' ? <BarbersAdmin onChange={loadBarbers} /> : null}
       {tab === 'services' ? <ServicesAdmin /> : null}
       {tab === 'hours' ? <HoursAdmin principal={principal} barbers={barbers} /> : null}
       {tab === 'timeoff' ? <TimeOffAdmin principal={principal} barbers={barbers} /> : null}
+    </div>
+  );
+}
+
+/* ----------------------------------------------------------------- Barbers */
+
+function BarbersAdmin({ onChange }: { onChange: () => void }) {
+  const toast = useToast();
+  const [barbers, setBarbers] = useState<BarberAdminDTO[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState('');
+  const [nameAr, setNameAr] = useState('');
+  const [nameEn, setNameEn] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const load = () => {
+    setLoading(true);
+    void api<{ barbers: BarberAdminDTO[] }>('/api/barbers/all')
+      .then((r) => setBarbers(r.barbers))
+      .catch((err) => toast(errorMessage(err), 'error'))
+      .finally(() => setLoading(false));
+  };
+  useEffect(load, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const create = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await api('/api/barbers', {
+        method: 'POST',
+        body: { email, nameAr, nameEn: nameEn || null, password },
+      });
+      toast('Barber added', 'success');
+      setEmail('');
+      setNameAr('');
+      setNameEn('');
+      setPassword('');
+      load();
+      onChange();
+    } catch (err) {
+      toast(errorMessage(err), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggle = async (b: BarberAdminDTO) => {
+    try {
+      await api(`/api/barbers/${b.id}`, { method: 'PATCH', body: { isActive: !b.isActive } });
+      toast(b.isActive ? 'Barber deactivated' : 'Barber reactivated', 'success');
+      load();
+      onChange();
+    } catch (err) {
+      toast(errorMessage(err), 'error');
+    }
+  };
+
+  return (
+    <div className="stack">
+      <Card>
+        <div className="card-head">
+          <div>
+            <h2>Add a barber</h2>
+            <p>They sign in with this email + password on the business portal.</p>
+          </div>
+        </div>
+        <form className="card-pad grid-2" onSubmit={create}>
+          <Field label="Email (login)">
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="barber@shop.dz"
+              required
+            />
+          </Field>
+          <Field label="Password">
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="At least 8 characters"
+              minLength={8}
+              required
+            />
+          </Field>
+          <Field label="Name (Arabic)">
+            <Input value={nameAr} onChange={(e) => setNameAr(e.target.value)} placeholder="سمير" required />
+          </Field>
+          <Field label="Name (English, optional)">
+            <Input value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="Samir" />
+          </Field>
+          <div>
+            <Button type="submit" disabled={busy}>
+              {busy ? 'Adding…' : 'Add barber'}
+            </Button>
+          </div>
+        </form>
+      </Card>
+
+      <Card>
+        <div className="card-head">
+          <div>
+            <h2>Barbers</h2>
+            <p>Deactivated barbers can’t be booked and can’t sign in.</p>
+          </div>
+        </div>
+        {loading ? (
+          <Spinner />
+        ) : barbers.length === 0 ? (
+          <Empty>No barbers yet. Add one above so customers can book.</Empty>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {barbers.map((b) => (
+                <tr key={b.id}>
+                  <td className="cell-strong">
+                    {b.nameEn ?? b.nameAr}
+                    {b.nameEn ? <span className="cell-muted"> · {b.nameAr}</span> : null}
+                  </td>
+                  <td className="cell-muted">{b.email}</td>
+                  <td>
+                    <Badge status={b.isActive ? 'confirmed' : 'cancelled'} label={b.isActive ? 'Active' : 'Inactive'} />
+                  </td>
+                  <td>
+                    <Button size="sm" variant={b.isActive ? 'danger' : 'ghost'} onClick={() => void toggle(b)}>
+                      {b.isActive ? 'Deactivate' : 'Reactivate'}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
     </div>
   );
 }

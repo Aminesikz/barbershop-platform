@@ -5,6 +5,7 @@ export interface ResolvedShop {
   id: string;
   slug: string;
   timezone: string;
+  name: string | null;
 }
 
 /** Narrow req.shop to a guaranteed value. Throws (→500) if tenantResolver didn't run. */

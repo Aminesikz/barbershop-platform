@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { BookingDTO, ServiceDTO, BarberDTO, BookingStatus } from '@barber/shared-types';
-import { api, errorMessage, getBarberToken } from '../api';
+import { api, errorMessage, getBarberToken, wsUrl } from '../api';
 import { useAuth } from '../app/AuthContext';
 import { useToast } from '../components/Toast';
 import { Badge, Button, Card, Empty, Select, Spinner } from '../components/ui';
@@ -88,7 +88,7 @@ export function BookingsPage() {
   useEffect(() => {
     const token = getBarberToken();
     if (!principal || principal.kind !== 'barber' || !token) return;
-    const url = `ws://${window.location.hostname}:3000/?token=${encodeURIComponent(token)}&shopId=${encodeURIComponent(principal.shopId)}`;
+    const url = wsUrl(`token=${encodeURIComponent(token)}&shopId=${encodeURIComponent(principal.shopId)}`);
     const ws = new WebSocket(url);
     wsRef.current = ws;
     ws.onopen = () => setLive(true);
