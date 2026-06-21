@@ -10,6 +10,7 @@
     "migrate": "node-pg-migrate",
     "migrate:up": "node-pg-migrate up",
     "migrate:down": "node-pg-migrate down",
+    "seed:admin": "node dist/scripts/seedAdmin.js",
     "test": "node --import tsx/esm --experimental-test-module-mocks --test src/tests/**/*.test.ts"
   },
   "dependencies": {

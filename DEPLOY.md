@@ -23,6 +23,10 @@ hostname (`slug.platform.dz`). Creating a shop in the admin app makes it live in
   `docker build -f apps/api/Dockerfile -t barber-api .`
 - **Release command** (runs migrations before the new version serves traffic):
   `npm run migrate:up -w apps/api`  (uses `DATABASE_URL`)
+- **Seed the first platform admin** (one-off, AFTER the first migrate — a fresh prod DB
+  has zero admins, so nobody could log into the admin app otherwise):
+  `ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='a-strong-password' npm run seed:admin -w apps/api`
+  (idempotent — re-running with the same email just resets the password)
 - **Start**: the image's `CMD` → `node dist/server.js`
 - Env vars:
   - `NODE_ENV=production`
