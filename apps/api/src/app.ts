@@ -52,6 +52,14 @@ app.use(
   }),
 );
 
+// Liveness probe for the platform's health check / uptime monitors. Mounted EARLY —
+// before the rate limiter and session — so probes are cheap, unthrottled, and never
+// touch Redis. Liveness only (no DB ping); readiness is implied by the server booting
+// (testConnection runs in server.ts before listen).
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // SECURITY: CORS restricted to wildcard subdomain pattern via regex
 const escapedPattern = env.ALLOWED_ORIGIN_PATTERN
   .replace(/\./g, '\\.')
