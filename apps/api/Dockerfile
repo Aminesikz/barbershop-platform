@@ -5,14 +5,14 @@
 # cleanly via prebuilt binaries.
 
 # ---- build stage ----
-FROM node:22-slim AS build
+FROM node:26-slim AS build
 WORKDIR /repo
 COPY . .
 RUN npm ci
 RUN npm run build -w apps/api
 
 # ---- runtime stage ----
-FROM node:22-slim AS runtime
+FROM node:26-slim AS runtime
 ENV NODE_ENV=production
 WORKDIR /repo
 # Bring the installed workspace + the compiled API. node-pg-migrate is a prod dep, so
