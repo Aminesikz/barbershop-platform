@@ -1,0 +1,40 @@
+# Dependabot: automated dependency update PRs.
+# - npm: one root manifest — npm workspaces hoist everything into the root package-lock.json.
+# - github-actions: keeps the SHA-pinned action versions in .github/workflows fresh.
+# - docker: base images in the three Dockerfiles (api, web, web-admin).
+# Each ecosystem has a cooldown so a just-published (possibly compromised)
+# release isn't proposed immediately; security advisories bypass the cooldown.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    groups:
+      # Batch routine updates into one PR to keep review load sane; security
+      # updates still arrive individually and immediately.
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: docker
+    directories:
+      - /apps/api
+      - /apps/web
+      - /apps/web-admin
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
