@@ -9,7 +9,7 @@
 # passes service variables to the build, so setting VITE_API_BASE on the service is enough.
 
 # ---- build stage ----
-FROM node:22-slim AS build
+FROM node:26-slim AS build
 WORKDIR /repo
 ARG VITE_API_BASE=""
 ENV VITE_API_BASE=$VITE_API_BASE
