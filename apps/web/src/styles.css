@@ -225,10 +225,11 @@ a {
 .hero-title {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 44px;
+  font-size: clamp(30px, 9vw, 44px);
   line-height: 1.05;
   letter-spacing: -0.02em;
   margin: 0 0 12px;
+  overflow-wrap: break-word;
 }
 .hero-sub {
   max-width: 540px;
@@ -867,5 +868,124 @@ a {
   }
   100% {
     box-shadow: 0 0 0 0 rgba(31, 122, 77, 0);
+  }
+}
+
+/* ============================================================
+   Responsive — phones & touch
+   ============================================================ */
+/* Horizontal scroll container for data tables (they keep readable column
+   widths on phones instead of crushing). */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: 20px 16px 48px;
+  }
+  /* Header wraps to two rows: brand + actions, then full-width nav tabs. */
+  .app-header {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 58px;
+    padding: 10px 16px;
+    gap: 8px 12px;
+  }
+  .nav {
+    order: 3;
+    width: 100%;
+  }
+  .nav button {
+    flex: 1;
+    text-align: center;
+  }
+  .hero {
+    padding: 30px 18px;
+  }
+  .card-pad {
+    padding: 16px;
+  }
+  .card-head {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+  .pitch {
+    padding: 20px 16px;
+  }
+  .row {
+    flex-wrap: wrap;
+  }
+  .table th,
+  .table td {
+    padding: 10px 12px;
+  }
+  .table-wrap .table {
+    min-width: 560px;
+  }
+  /* iOS Safari auto-zooms into focused inputs below 16px — pin to 16px on phones. */
+  .input,
+  .select {
+    font-size: 16px;
+  }
+  .seg-group {
+    display: flex;
+    width: 100%;
+  }
+  .seg {
+    flex: 1;
+    text-align: center;
+  }
+  .toast-wrap {
+    width: calc(100vw - 32px);
+  }
+  .toast {
+    text-align: center;
+  }
+  .footer-inner {
+    padding: 32px 16px 24px;
+  }
+}
+
+/* Weekly-hours day label: a side column on desktop, a full-width heading on phones. */
+.wh-day {
+  width: 96px;
+  padding-top: 8px;
+  font-weight: 500;
+}
+@media (max-width: 720px) {
+  .wh-day {
+    width: 100%;
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .who {
+    display: none;
+  }
+  .page-head h1 {
+    font-size: 20px;
+  }
+  .section-title {
+    font-size: 22px;
+  }
+}
+
+/* Comfortable tap targets on touch devices, regardless of viewport width. */
+@media (pointer: coarse) {
+  .btn-sm {
+    padding: 9px 14px;
+  }
+  .nav button {
+    padding: 10px 13px;
+  }
+  .slot {
+    padding: 12px 6px;
+  }
+  .seg {
+    padding: 10px 18px;
   }
 }

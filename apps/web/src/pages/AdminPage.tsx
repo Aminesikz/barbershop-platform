@@ -164,7 +164,7 @@ function BarbersAdmin({ onChange }: { onChange: () => void }) {
         ) : barbers.length === 0 ? (
           <Empty>No barbers yet. Add one above so customers can book.</Empty>
         ) : (
-          <table className="table">
+          <div className="table-wrap"><table className="table">
             <thead>
               <tr>
                 <th>Name</th>
@@ -192,7 +192,7 @@ function BarbersAdmin({ onChange }: { onChange: () => void }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Card>
     </div>
@@ -310,7 +310,7 @@ function ServicesAdmin() {
         ) : services.length === 0 ? (
           <Empty>No services yet.</Empty>
         ) : (
-          <table className="table">
+          <div className="table-wrap"><table className="table">
             <thead>
               <tr>
                 <th>Name</th>
@@ -347,7 +347,7 @@ function ServicesAdmin() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Card>
     </div>
@@ -470,7 +470,7 @@ function HoursAdmin({ principal, barbers }: { principal: Principal; barbers: Bar
           <div className="card-pad stack">
             {WEEKDAYS.map((label, wd) => (
               <div key={wd} className="row" style={{ alignItems: 'flex-start' }}>
-                <div style={{ width: 96, paddingTop: 8, fontWeight: 500 }}>{label}</div>
+                <div className="wh-day">{label}</div>
                 <div className="stack" style={{ flex: 1 }}>
                   {days[wd]!.length === 0 ? <span className="hint">Closed</span> : null}
                   {days[wd]!.map((s, idx) => (
@@ -623,7 +623,7 @@ function TimeOffAdmin({ principal, barbers }: { principal: Principal; barbers: B
             ) : items.length === 0 ? (
               <Empty>No time off scheduled.</Empty>
             ) : (
-              <table className="table">
+              <div className="table-wrap"><table className="table">
                 <thead>
                   <tr>
                     <th>From</th>
@@ -646,7 +646,7 @@ function TimeOffAdmin({ principal, barbers }: { principal: Principal; barbers: B
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
           </Card>
         </>
