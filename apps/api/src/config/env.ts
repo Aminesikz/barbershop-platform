@@ -35,6 +35,14 @@ const envSchema = z.object({
   BOOKING_HORIZON_DAYS: z.coerce.number().int().positive().default(60),
   BOOKING_MIN_LEAD_MIN: z.coerce.number().int().nonnegative().default(0),
   SLOT_GRANULARITY_MIN: z.coerce.number().int().positive().default(15),
+
+  // Transactional email (Resend). Optional: when unset, endpoints that must send
+  // email (password reset) return 503 instead of pretending to work.
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM: z.string().default('DZ Barbers <bookings@dzbarbers.com>'),
+
+  // Public web origin used to build links in emails (reset links). No trailing slash.
+  WEB_BASE_URL: z.string().url().default('http://localhost:5173'),
 });
 
 const parsed = envSchema.safeParse(process.env);

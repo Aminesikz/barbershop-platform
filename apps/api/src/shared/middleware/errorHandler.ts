@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 
 export interface AppError extends Error {
   statusCode?: number;
+  expose?: boolean;
 }
 
 export function errorHandler(
@@ -18,9 +19,10 @@ export function errorHandler(
   }
 
   const statusCode = err.statusCode ?? 500;
-  const message = statusCode < 500 ? err.message : 'Internal server error';
+  const expose = err.expose ?? statusCode < 500;
+  const message = expose ? err.message : 'Internal server error';
 
-  if (statusCode >= 500) {
+  if (statusCode >= 500 && !expose) {
     console.error('Unhandled error:', err);
   }
 
