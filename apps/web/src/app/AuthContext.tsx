@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import type { Shop } from '@barber/shared-types';
-import { api, setBarberToken, getBarberToken } from '../api';
+import { api, setBarberToken, getBarberToken, getShopSlug } from '../api';
 
 export interface Principal {
   kind: 'owner' | 'barber';
@@ -42,12 +42,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     // Resolve the shop this page maps to (from the hostname-derived slug). A
     // missing/inactive shop 404s → shop stays null and the app shows ShopNotFound.
+    // No slug at all (bare apex / reserved subdomain) → skip the guaranteed-404
+    // lookup entirely; the app shows the platform landing page.
     let resolved: Shop | null = null;
-    try {
-      const r = await api<{ shop: Shop }>('/api/shop');
-      resolved = r.shop;
-    } catch {
-      resolved = null;
+    if (getShopSlug()) {
+      try {
+        const r = await api<{ shop: Shop }>('/api/shop');
+        resolved = r.shop;
+      } catch {
+        resolved = null;
+      }
     }
     setShop(resolved);
 

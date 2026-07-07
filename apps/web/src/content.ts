@@ -70,3 +70,29 @@ export const DEVELOPER_CONTACT = {
   email: 'roubaamine533@gmail.com',
   phone: '+213 555 00 00 00',
 };
+
+// Platform-level marketing copy for the apex landing page (the bare domain,
+// where no shop subdomain is present).
+export const PLATFORM_LANDING = {
+  brand: 'DZ Barbers',
+  eyebrow: 'Booking software for barbershops',
+  headline: 'Your barbershop, bookable online',
+  sub:
+    'Give your customers a booking page with your name on it, and run your day from a ' +
+    'live console — built for barbershops in Algeria.',
+  /** Slug of the demo shop the "See a live demo" button points at. */
+  demoSlug: 'demo-cuts',
+  features: [
+    { icon: '✂️', title: 'Your own booking page', text: 'Customers pick a service, barber and time on a page with your shop’s name and address on it.' },
+    { icon: '📅', title: 'Real availability', text: 'Open slots come straight from each barber’s hours and time off — double bookings are impossible.' },
+    { icon: '🔔', title: 'Live console', text: 'New bookings appear on your dashboard the moment they’re made. Confirm, complete or cancel in one tap.' },
+    { icon: '👥', title: 'Per-barber schedules', text: 'Weekly hours, split shifts for the midday break, and time off — managed per barber.' },
+    { icon: '📱', title: 'Works on any phone', text: 'Nothing to install. Booking and management are fast and phone-friendly.' },
+    { icon: '🔐', title: 'Secure accounts', text: 'Separate owner and barber logins, with password reset by email.' },
+  ],
+  steps: [
+    { n: '1', title: 'Get set up', text: 'Send us your shop name, services and team — we create your shop and hand you the keys.' },
+    { n: '2', title: 'Set your schedule', text: 'Add each barber’s weekly hours and time off from the console.' },
+    { n: '3', title: 'Share your link', text: 'Customers book from your own address — you confirm with one tap.' },
+  ],
+};

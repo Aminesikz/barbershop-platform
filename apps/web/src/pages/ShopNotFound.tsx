@@ -3,8 +3,9 @@ import { Card } from '../components/ui';
 import { BUSINESS_PITCH, DEVELOPER_CONTACT } from '../content';
 
 /**
- * Shown when the hostname maps to no active shop (unknown subdomain, inactive shop,
- * or the bare apex). Replaces the whole app so we never render a broken booking page.
+ * Shown when the hostname ADDRESSES a shop that doesn't exist or isn't active
+ * (unknown subdomain / inactive shop). The bare apex and reserved subdomains render
+ * LandingPage instead. Replaces the whole app so we never render a broken booking page.
  */
 export function ShopNotFound() {
   const slug = getShopSlug();

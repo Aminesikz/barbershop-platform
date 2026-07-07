@@ -5,8 +5,10 @@ import { PublicLayout } from './PublicLayout';
 import { BusinessLayout } from './BusinessLayout';
 import { BookPage } from '../pages/BookPage';
 import { ShopNotFound } from '../pages/ShopNotFound';
+import { LandingPage } from '../pages/LandingPage';
 import { ResetPasswordPage } from '../pages/ResetPasswordPage';
 import { Spinner } from '../components/ui';
+import { getShopSlug } from '../api';
 
 // One build serves every shop. The shop is resolved from the hostname (see api.ts);
 // until it's resolved we show a spinner, and if it maps to no active shop we show
@@ -40,7 +42,10 @@ function AppRoutes() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </>
       ) : (
-        <Route path="*" element={<ShopNotFound />} />
+        /* No shop resolved. A hostname that ADDRESSES a shop (slug present but
+           unknown/inactive) gets the not-found page; the bare apex / reserved
+           subdomains (www) are the platform's front door → landing page. */
+        <Route path="*" element={getShopSlug() ? <ShopNotFound /> : <LandingPage />} />
       )}
     </Routes>
   );
