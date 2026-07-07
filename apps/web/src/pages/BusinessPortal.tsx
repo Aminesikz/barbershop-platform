@@ -8,10 +8,17 @@ import { BUSINESS_PITCH, DEVELOPER_CONTACT } from '../content';
 
 type Role = 'owner' | 'barber';
 
-const DEMO: Record<Role, { email: string; password: string }> = {
-  owner: { email: 'owner@algiers-cuts.dz', password: 'OwnerPass123!' },
-  barber: { email: 'barber@algiers-cuts.dz', password: 'BarberPass123!' },
-};
+// Seeded local-dev credentials, prefilled ONLY in dev builds — production must
+// never suggest credentials on a public login form.
+const DEMO: Record<Role, { email: string; password: string }> = import.meta.env.DEV
+  ? {
+      owner: { email: 'owner@algiers-cuts.dz', password: 'OwnerPass123!' },
+      barber: { email: 'barber@algiers-cuts.dz', password: 'BarberPass123!' },
+    }
+  : {
+      owner: { email: '', password: '' },
+      barber: { email: '', password: '' },
+    };
 
 export function BusinessPortal() {
   const { loginOwner, loginBarber, shop } = useAuth();
@@ -81,6 +88,9 @@ export function BusinessPortal() {
             <Button type="submit" disabled={busy}>
               {busy ? 'Signing in…' : `Sign in as ${role}`}
             </Button>
+            <a className="muted" href={`/reset-password?kind=${role}`} style={{ alignSelf: 'flex-start' }}>
+              Forgot password?
+            </a>
           </form>
         </div>
       </Card>

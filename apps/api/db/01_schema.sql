@@ -183,3 +183,21 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_bookings_during
   BEFORE INSERT OR UPDATE OF start_at, duration_min ON bookings
   FOR EACH ROW EXECUTE FUNCTION set_booking_during();
+
+-- ---------------------------------------------------------------------------
+-- PASSWORD_RESET_TOKENS — owner/barber password reset (mirrors migration 0002).
+-- SECURITY: stores a SHA-256 hash of the token, never the token itself.
+-- Exactly one of owner_id/barber_id is set; single-use via used_at.
+-- ---------------------------------------------------------------------------
+CREATE TABLE password_reset_tokens (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id   uuid REFERENCES shop_owners(id) ON DELETE CASCADE,
+  barber_id  uuid REFERENCES barbers(id) ON DELETE CASCADE,
+  token_hash text NOT NULL UNIQUE,
+  expires_at timestamptz NOT NULL,
+  used_at    timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (num_nonnulls(owner_id, barber_id) = 1)
+);
+CREATE INDEX idx_prt_owner ON password_reset_tokens(owner_id) WHERE owner_id IS NOT NULL;
+CREATE INDEX idx_prt_barber ON password_reset_tokens(barber_id) WHERE barber_id IS NOT NULL;

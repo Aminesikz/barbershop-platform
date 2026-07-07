@@ -5,6 +5,7 @@ import { PublicLayout } from './PublicLayout';
 import { BusinessLayout } from './BusinessLayout';
 import { BookPage } from '../pages/BookPage';
 import { ShopNotFound } from '../pages/ShopNotFound';
+import { ResetPasswordPage } from '../pages/ResetPasswordPage';
 import { Spinner } from '../components/ui';
 
 // One build serves every shop. The shop is resolved from the hostname (see api.ts);
@@ -19,19 +20,28 @@ function AppRoutes() {
       </div>
     );
   }
-  if (!shop) return <ShopNotFound />;
   return (
     <Routes>
-      {/* Public customer site — no staff/admin affordance. */}
-      <Route path="/" element={<PublicLayout />}>
-        <Route index element={<BookPage />} />
-      </Route>
+      {/* Password reset links from email land on the apex — this route must work
+          with or without a resolved shop. */}
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-      {/* Business portal — owner/barber login + staff console. */}
-      <Route path="/business" element={<BusinessLayout />} />
+      {shop ? (
+        <>
+          {/* Public customer site — no staff/admin affordance. */}
+          <Route path="/" element={<PublicLayout />}>
+            <Route index element={<BookPage />} />
+          </Route>
 
-      {/* Unknown paths fall back to the public site. */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Business portal — owner/barber login + staff console. */}
+          <Route path="/business" element={<BusinessLayout />} />
+
+          {/* Unknown paths fall back to the public site. */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </>
+      ) : (
+        <Route path="*" element={<ShopNotFound />} />
+      )}
     </Routes>
   );
 }

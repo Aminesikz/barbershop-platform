@@ -10,8 +10,9 @@ export class AppError extends Error {
     super(message);
     this.name = 'AppError';
     this.statusCode = statusCode;
-    // 4xx messages are safe to send to the client; 5xx are not.
-    this.expose = statusCode < 500;
+    // 4xx messages are safe to send to the client; 5xx are not — except 503,
+    // which is deliberately thrown to tell the client a feature is unavailable.
+    this.expose = statusCode < 500 || statusCode === 503;
   }
 }
 
@@ -21,3 +22,4 @@ export const forbidden = (msg = 'Forbidden'): AppError => new AppError(403, msg)
 export const notFound = (msg = 'Not found'): AppError => new AppError(404, msg);
 export const conflict = (msg = 'Conflict'): AppError => new AppError(409, msg);
 export const tooManyRequests = (msg = 'Too many requests'): AppError => new AppError(429, msg);
+export const serviceUnavailable = (msg = 'Service unavailable'): AppError => new AppError(503, msg);
