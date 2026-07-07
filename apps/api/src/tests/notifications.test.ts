@@ -114,7 +114,11 @@ describe('booking.created email notifications', () => {
     assert.match(ownerMail.text, /Ali Mansouri/);
     assert.match(ownerMail.text, /Full Haircut/);
     assert.match(ownerMail.text, /500 DZD/);
-    assert.ok(ownerMail.text.includes('https://algiers-cuts.dzbarbers.com/business'));
+    const linkLine = ownerMail.text.split('\n').at(-1);
+    assert.equal(
+      linkLine,
+      'Open your console to confirm it: https://algiers-cuts.dzbarbers.com/business',
+    );
 
     const customerMail = sentEmails.find((e) => e.to === 'ali@example.com');
     assert.ok(customerMail);
