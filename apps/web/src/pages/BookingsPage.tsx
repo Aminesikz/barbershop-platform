@@ -192,6 +192,7 @@ export function BookingsPage() {
                   <td>
                     <div className="cell-strong">{b.customerName}</div>
                     <div className="cell-muted">{b.customerPhone}</div>
+                    {b.customerEmail ? <div className="cell-muted">{b.customerEmail}</div> : null}
                   </td>
                   <td>{serviceName(b.serviceId)}</td>
                   <td>{barberName(b.barberId)}</td>

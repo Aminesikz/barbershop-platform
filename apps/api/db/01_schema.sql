@@ -142,6 +142,7 @@ CREATE TABLE bookings (
   customer_name       text        NOT NULL CHECK (char_length(customer_name) BETWEEN 2 AND 80),
   customer_phone      text        NOT NULL CHECK (char_length(customer_phone) <= 20),
   customer_phone_hmac text        NOT NULL,
+  customer_email      text        CHECK (customer_email IS NULL OR char_length(customer_email) <= 254),
   start_at            timestamptz NOT NULL,
   duration_min        integer     NOT NULL CHECK (duration_min > 0),
   price_dzd           integer     NOT NULL CHECK (price_dzd >= 0),

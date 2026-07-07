@@ -3,12 +3,14 @@ import { app } from './app.js';
 import { env } from './config/env.js';
 import { testConnection } from './config/db.js';
 import { attachWebSocketServer } from './realtime/ws.server.js';
+import { registerBookingEmailNotifications } from './notifications/bookingEmails.js';
 
 async function main(): Promise<void> {
   await testConnection();
 
   const httpServer = http.createServer(app);
   attachWebSocketServer(httpServer);
+  registerBookingEmailNotifications();
 
   httpServer.listen(env.PORT, () => {
     console.log(`API listening on port ${env.PORT} [${env.NODE_ENV}]`);

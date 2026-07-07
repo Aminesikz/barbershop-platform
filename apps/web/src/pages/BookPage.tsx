@@ -30,6 +30,7 @@ export function BookPage() {
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<PublicBookingDTO | null>(null);
 
@@ -76,6 +77,7 @@ export function BookPage() {
           start: selected,
           customerName: name,
           customerPhone: phone,
+          ...(email.trim() ? { customerEmail: email.trim() } : {}),
           idempotencyKey: uuid(),
         },
       });
@@ -94,6 +96,7 @@ export function BookPage() {
     setSelected(null);
     setName('');
     setPhone('');
+    setEmail('');
   };
 
   const pickBarber = (id: string) => {
@@ -156,7 +159,10 @@ export function BookPage() {
                 {result.barber.nameEn ?? result.barber.nameAr} — {fmtDateTime(result.start, tz)}.
               </div>
               <div className="hint">
-                Status: {result.status}. A confirmation would normally be sent via WhatsApp/SMS.
+                Status: {result.status}.{' '}
+                {email.trim()
+                  ? `A confirmation email is on its way to ${email.trim()}.`
+                  : 'The shop will confirm your appointment shortly.'}
               </div>
               <div>
                 <Button onClick={reset}>Book another</Button>
@@ -242,6 +248,14 @@ export function BookPage() {
                   </Field>
                   <Field label="Phone (Algerian mobile)">
                     <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0551234567" />
+                  </Field>
+                  <Field label="Email (optional — for your confirmation)">
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                    />
                   </Field>
                 </div>
                 <div className="card-pad" style={{ paddingTop: 0 }}>

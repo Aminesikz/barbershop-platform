@@ -14,6 +14,7 @@ export interface BookingRow {
   service_id: string;
   customer_name: string;
   customer_phone: string;
+  customer_email: string | null;
   start_at: Date;
   end_at: Date;
   status: BookingStatus;
@@ -49,6 +50,7 @@ export function toBookingDTO(r: BookingRow): BookingDTO {
     serviceId: r.service_id,
     customerName: r.customer_name,
     customerPhone: r.customer_phone,
+    customerEmail: r.customer_email,
     start: r.start_at.toISOString(),
     end: r.end_at.toISOString(),
     status: r.status,

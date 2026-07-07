@@ -14,6 +14,9 @@ export const endMinute = z.number().int().min(1).max(1440);
 /** Customer display name. */
 export const customerName = z.string().trim().min(2).max(80);
 
+/** Email address, normalized to lowercase. 254 = RFC 5321 max length. */
+export const emailAddress = z.string().trim().toLowerCase().email().max(254);
+
 /**
  * Real calendar date "YYYY-MM-DD" — rejects shapes that pass the regex but aren't
  * real dates (2026-02-30, 2026-13-01) so they never reach Postgres as a 22008 -> 500.
