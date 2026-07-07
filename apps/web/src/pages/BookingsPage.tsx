@@ -174,7 +174,7 @@ export function BookingsPage() {
         ) : bookings.length === 0 ? (
           <Empty>No bookings{status === 'all' ? ' yet' : ` with status “${status}”`}.</Empty>
         ) : (
-          <table className="table">
+          <div className="table-wrap"><table className="table">
             <thead>
               <tr>
                 <th>When</th>
@@ -216,7 +216,7 @@ export function BookingsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Card>
 
