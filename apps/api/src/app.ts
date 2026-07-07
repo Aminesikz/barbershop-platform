@@ -60,9 +60,13 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-// SECURITY: CORS restricted to wildcard subdomain pattern via regex
+// SECURITY: CORS restricted to wildcard subdomain pattern via regex.
+// `*.<domain>` matches the subdomains AND the bare apex — the password-reset page
+// is served from the apex, so its POSTs to the API must pass CORS. The subdomain
+// group stays anchored (`([a-z0-9-]+\.)?`) so lookalike domains can't match.
 const escapedPattern = env.ALLOWED_ORIGIN_PATTERN
   .replace(/\./g, '\\.')
+  .replace(/\*\\\./g, '([a-z0-9-]+\\.)?')
   .replace(/\*/g, '[a-z0-9-]+');
 const originPattern = new RegExp(`^${escapedPattern}$`);
 
