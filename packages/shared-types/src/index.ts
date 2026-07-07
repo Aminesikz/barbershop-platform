@@ -108,6 +108,7 @@ export interface BookingDTO {
   serviceId: string;
   customerName: string;
   customerPhone: string;
+  customerEmail: string | null;
   start: string; // ISO-8601 UTC
   end: string; // ISO-8601 UTC
   status: BookingStatus;

@@ -5,7 +5,7 @@ import { redis } from '../../config/redis.js';
 import { getShop, getStaff } from '../../shared/reqContext.js';
 import { tooManyRequests } from '../../shared/httpError.js';
 import { hmacPhone } from '../../shared/phone.js';
-import { uuid, isoDatetime, customerName, algerianPhone } from '../../shared/validation.js';
+import { uuid, isoDatetime, customerName, algerianPhone, emailAddress } from '../../shared/validation.js';
 import type { PublicBookingDTO } from '@barber/shared-types';
 import * as svc from './bookings.service.js';
 
@@ -16,6 +16,7 @@ const createSchema = z
     start: isoDatetime,
     customerName,
     customerPhone: algerianPhone, // transforms → E.164
+    customerEmail: emailAddress.optional(), // used for the confirmation email only
     idempotencyKey: uuid,
     website: z.string().optional(), // honeypot — accept ANY value (never .max(0), which would leak the trap)
   })
@@ -72,6 +73,7 @@ export async function create(req: Request, res: Response): Promise<void> {
     customerName: body.customerName,
     customerPhone: body.customerPhone,
     customerPhoneHmac: phoneHmac,
+    customerEmail: body.customerEmail ?? null,
     idempotencyKey: body.idempotencyKey,
   });
   res.status(201).json({ booking });

@@ -16,7 +16,7 @@ import {
 
 // Raw bookings-table columns (no join). lower/upper(during) expose the stored range.
 const RAW_COLS = `
-  id, shop_id, barber_id, service_id, customer_name, customer_phone,
+  id, shop_id, barber_id, service_id, customer_name, customer_phone, customer_email,
   lower(during) AS start_at, upper(during) AS end_at, status, source,
   cancel_reason, confirmed_at, completed_at, cancelled_at, created_at`;
 
@@ -61,6 +61,7 @@ export interface CreateBookingInput {
   customerName: string;
   customerPhone: string; // normalized E.164
   customerPhoneHmac: string;
+  customerEmail: string | null;
   idempotencyKey: string;
 }
 
@@ -123,8 +124,8 @@ export async function createBooking(
       const ins = await client.query<{ id: string }>(
         `INSERT INTO bookings
            (shop_id, barber_id, service_id, customer_name, customer_phone, customer_phone_hmac,
-            start_at, duration_min, price_dzd, status, source, idempotency_key)
-         VALUES ($1,$2,$3,$4,$5,$6,$7::timestamptz,$8,$9,'pending','public',$10)
+            customer_email, start_at, duration_min, price_dzd, status, source, idempotency_key)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8::timestamptz,$9,$10,'pending','public',$11)
          RETURNING id`,
         [
           shop.id,
@@ -133,6 +134,7 @@ export async function createBooking(
           input.customerName,
           input.customerPhone,
           input.customerPhoneHmac,
+          input.customerEmail,
           input.start,
           service.duration_min,
           service.price_dzd,

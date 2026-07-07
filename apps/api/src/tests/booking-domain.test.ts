@@ -15,7 +15,7 @@ const { normalizeDzPhone, hmacPhone } = await import('../shared/phone.js');
 const { toPublicDTO, toBroadcastDTO, toBookingDTO } = await import('../modules/bookings/bookings.mapper.js');
 const { assertCanManageBarber } = await import('../shared/manageBarber.js');
 const { rangesOverlap } = await import('../shared/time.js');
-const { algerianPhone, calendarDate } = await import('../shared/validation.js');
+const { algerianPhone, calendarDate, emailAddress } = await import('../shared/validation.js');
 const { AppError } = await import('../shared/httpError.js');
 
 // ============================================================
@@ -81,6 +81,7 @@ describe('booking mappers — PII redaction', () => {
     service_id: 's1',
     customer_name: 'Ali',
     customer_phone: '+213551234567',
+    customer_email: 'ali@example.com',
     start_at: new Date('2026-06-18T08:00:00.000Z'),
     end_at: new Date('2026-06-18T08:30:00.000Z'),
     status: 'pending' as const,
@@ -99,16 +100,19 @@ describe('booking mappers — PII redaction', () => {
     assert.equal(dto.barber.nameEn, 'Samir');
   });
 
-  it('broadcast DTO contains NO phone (compiler-enforced shape)', () => {
+  it('broadcast DTO contains NO phone and NO email (compiler-enforced shape)', () => {
     const dto = toBroadcastDTO(fullRow);
     assert.ok(!JSON.stringify(dto).includes('551234567'));
+    assert.ok(!JSON.stringify(dto).includes('ali@example.com'));
     assert.ok(!('customerPhone' in dto));
+    assert.ok(!('customerEmail' in dto));
     assert.equal(dto.customerName, 'Ali');
   });
 
-  it('staff DTO DOES include phone (staff-only)', () => {
+  it('staff DTO DOES include phone and email (staff-only)', () => {
     const dto = toBookingDTO(rawRow);
     assert.equal(dto.customerPhone, '+213551234567');
+    assert.equal(dto.customerEmail, 'ali@example.com');
     assert.equal(dto.start, '2026-06-18T08:00:00.000Z');
   });
 });
@@ -165,6 +169,12 @@ describe('validation', () => {
       // SECURITY: the raw input must not leak into the error.
       assert.ok(!msg.includes('12345'));
     }
+  });
+
+  it('emailAddress trims, lowercases and rejects junk', () => {
+    assert.equal(emailAddress.parse('  Ali@Example.COM '), 'ali@example.com');
+    assert.equal(emailAddress.safeParse('not-an-email').success, false);
+    assert.equal(emailAddress.safeParse(`a@${'b'.repeat(250)}.dz`).success, false);
   });
 
   it('calendarDate rejects impossible dates', () => {
