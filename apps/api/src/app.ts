@@ -8,6 +8,7 @@ import { rateLimit } from 'express-rate-limit';
 import { RedisStore as RLRedisStore } from 'rate-limit-redis';
 import { env } from './config/env.js';
 import { redis } from './config/redis.js';
+import { allowedOriginPattern } from './shared/originPattern.js';
 import { authRouter } from './modules/auth/auth.router.js';
 import { tenantResolver } from './shared/middleware/tenantResolver.js';
 import { getShop } from './shared/reqContext.js';
@@ -60,20 +61,12 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-// SECURITY: CORS restricted to wildcard subdomain pattern via regex.
-// `*.<domain>` matches the subdomains AND the bare apex — the password-reset page
-// is served from the apex, so its POSTs to the API must pass CORS. The subdomain
-// group stays anchored (`([a-z0-9-]+\.)?`) so lookalike domains can't match.
-const escapedPattern = env.ALLOWED_ORIGIN_PATTERN
-  .replace(/\./g, '\\.')
-  .replace(/\*\\\./g, '([a-z0-9-]+\\.)?')
-  .replace(/\*/g, '[a-z0-9-]+');
-const originPattern = new RegExp(`^${escapedPattern}$`);
-
+// SECURITY: CORS restricted to the wildcard subdomain pattern (see originPattern.ts —
+// the same compiled regex also guards the WebSocket upgrade).
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || originPattern.test(origin)) {
+      if (!origin || allowedOriginPattern.test(origin)) {
         callback(null, true);
       } else {
         callback(new Error('CORS: origin not allowed'));
