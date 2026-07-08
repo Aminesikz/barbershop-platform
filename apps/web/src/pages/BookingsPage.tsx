@@ -198,6 +198,7 @@ export function BookingsPage() {
                   <td>{barberName(b.barberId)}</td>
                   <td>
                     <Badge status={b.status} />
+                    {b.cancelReason ? <div className="cell-muted">{b.cancelReason}</div> : null}
                   </td>
                   <td>
                     <div className="row-wrap">
