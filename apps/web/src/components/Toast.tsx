@@ -20,7 +20,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const show = useCallback((message: string, type: ToastType = 'info') => {
     const id = nextId++;
-    setToasts((t) => [...t, { id, message, type }]);
+    // Identical message already on screen → don't stack a duplicate (e.g. several
+    // in-flight requests all failing with the same "signed out" error).
+    setToasts((t) => (t.some((x) => x.message === message) ? t : [...t, { id, message, type }]));
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3500);
   }, []);
 

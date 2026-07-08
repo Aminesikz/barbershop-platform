@@ -1,6 +1,22 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from 'react';
 import type { Shop } from '@barber/shared-types';
-import { api, setBarberToken, getBarberToken, getShopSlug } from '../api';
+import {
+  api,
+  setBarberToken,
+  getBarberToken,
+  getShopSlug,
+  onUnauthorized,
+  SIGNED_OUT_MESSAGE,
+} from '../api';
+import { useToast } from '../components/Toast';
 
 export interface Principal {
   kind: 'owner' | 'barber';
@@ -34,9 +50,33 @@ interface MeResponse {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [principal, setPrincipal] = useState<Principal | null>(null);
+  const toast = useToast();
+  const [principal, setPrincipalState] = useState<Principal | null>(null);
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Mirror of `principal` that updates SYNCHRONOUSLY, so the 401 listener below
+  // can tell "session died underneath us" from "we just aren't logged in" without
+  // waiting for a re-render (an intentional logout clears this before the server
+  // round-trip, so its own 401 can't race a spurious toast).
+  const principalRef = useRef<Principal | null>(null);
+  const setPrincipal = useCallback((p: Principal | null) => {
+    principalRef.current = p;
+    setPrincipalState(p);
+  }, []);
+
+  // A 401 while someone is signed in means the session/token no longer exists
+  // (logged out in another tab — the cookie is shared across the whole domain —
+  // or expired). Drop to the login screen instead of a half-logged-in console.
+  useEffect(() => {
+    onUnauthorized(() => {
+      if (!principalRef.current) return;
+      setPrincipal(null);
+      setBarberToken(null);
+      toast(SIGNED_OUT_MESSAGE, 'error');
+    });
+    return () => onUnauthorized(null);
+  }, [setPrincipal, toast]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -82,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     setPrincipal(null);
-  }, []);
+  }, [setPrincipal]);
 
   useEffect(() => {
     refresh().finally(() => setLoading(false));
@@ -104,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const me = await api<MeResponse>('/auth/owner/me');
     setPrincipal({ kind: 'owner', id: me.id, name: r.name, shopId: r.shopId });
-  }, []);
+  }, [setPrincipal]);
 
   const loginBarber = useCallback(async (email: string, password: string) => {
     // Resolve the current shop (slug → id) and clear any owner session so
@@ -122,17 +162,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
     setBarberToken(r.token);
     setPrincipal({ kind: 'barber', id: r.barber.id, name: r.barber.name, shopId: r.barber.shopId });
-  }, []);
+  }, [setPrincipal]);
 
   const logout = useCallback(async () => {
+    // Clear local auth FIRST: for barbers the owner/logout call below answers 401
+    // (no owner session), and the 401 listener must see us as already signed out.
+    setPrincipal(null);
     setBarberToken(null);
     try {
       await api('/auth/owner/logout', { method: 'POST' });
     } catch {
       /* ignore */
     }
-    setPrincipal(null);
-  }, []);
+  }, [setPrincipal]);
 
   return (
     <AuthContext.Provider value={{ principal, shop, loading, loginOwner, loginBarber, logout }}>
