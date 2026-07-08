@@ -52,6 +52,25 @@ export function setBarberToken(token: string | null): void {
   else localStorage.removeItem(TOKEN_KEY);
 }
 
+/**
+ * Notified whenever any API call answers 401. The auth layer registers here so a
+ * session that dies underneath an open console (logout in another tab — the sid
+ * cookie is shared across every *.dzbarbers.com subdomain — or plain expiry)
+ * drops the app back to the login screen instead of leaving a half-logged-in UI
+ * that errors on every click.
+ */
+let unauthorizedListener: (() => void) | null = null;
+export function onUnauthorized(listener: (() => void) | null): void {
+  unauthorizedListener = listener;
+}
+
+/**
+ * Shown for every guard-level 401 ("Unauthorized" from requireStaff/requireOwner —
+ * login failures say "Invalid credentials" and keep their own wording). The auth
+ * layer toasts the SAME string, so concurrent failures dedupe into one toast.
+ */
+export const SIGNED_OUT_MESSAGE = 'You were signed out — please sign in again.';
+
 export class ApiError extends Error {
   status: number;
   details: unknown;
@@ -87,8 +106,12 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
   const data: unknown = text ? JSON.parse(text) : null;
 
   if (!res.ok) {
+    // The listener decides whether this 401 means "session lost" (it no-ops when
+    // nobody is signed in, so login failures and logged-out /me probes are unaffected).
+    if (res.status === 401) unauthorizedListener?.();
     const errObj = (data ?? {}) as { error?: unknown; details?: unknown };
-    const msg = typeof errObj.error === 'string' ? errObj.error : `Request failed (${res.status})`;
+    let msg = typeof errObj.error === 'string' ? errObj.error : `Request failed (${res.status})`;
+    if (res.status === 401 && msg === 'Unauthorized') msg = SIGNED_OUT_MESSAGE;
     throw new ApiError(res.status, msg, errObj.details);
   }
   return data as T;
