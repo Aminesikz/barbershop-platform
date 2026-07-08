@@ -2,6 +2,7 @@ import { IncomingMessage } from 'node:http';
 import { Socket } from 'node:net';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
+import { allowedOriginPattern } from '../shared/originPattern.js';
 
 interface WsAuthResult {
   barberId: string;
@@ -26,6 +27,17 @@ function isJwtPayload(v: unknown): v is JwtPayload {
 }
 
 export function wsAuth(req: IncomingMessage, socket: Socket): WsAuthResult | null {
+  // SECURITY: cross-site WebSocket hijacking guard. Browsers always send Origin on
+  // WS handshakes, so a page on a foreign site can't open a socket even with a
+  // stolen/leaked token. A MISSING Origin is allowed on purpose: non-browser
+  // clients (curl probes, future native mobile app) send none, and they aren't the
+  // CSWSH threat model — they still need a valid JWT below.
+  const origin = req.headers.origin;
+  if (origin && !allowedOriginPattern.test(origin)) {
+    socket.destroy();
+    return null;
+  }
+
   const url = new URL(req.url ?? '', 'ws://base');
   const token = url.searchParams.get('token');
   const shopIdParam = url.searchParams.get('shopId');
