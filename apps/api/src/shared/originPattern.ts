@@ -10,10 +10,12 @@ import { env } from '../config/env.js';
  * the two surfaces can never drift apart.
  */
 export function compileOriginPattern(pattern: string): RegExp {
+  // Escape EVERY regex metacharacter first (a partial escape would let stray
+  // characters in the env value reach the regex), then re-expand the wildcards.
   const escaped = pattern
-    .replace(/\./g, '\\.')
-    .replace(/\*\\\./g, '([a-z0-9-]+\\.)?')
-    .replace(/\*/g, '[a-z0-9-]+');
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\\\*\\\./g, '([a-z0-9-]+\\.)?')
+    .replace(/\\\*/g, '[a-z0-9-]+');
   return new RegExp(`^${escaped}$`);
 }
 

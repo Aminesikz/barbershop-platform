@@ -14,6 +14,7 @@ process.env['ALLOWED_ORIGIN_PATTERN'] = 'https://*.platform.dz';
 process.env['PHONE_HMAC_SECRET'] = 'test-phone-hmac-secret-minimum-32-chars!!';
 
 const { wsAuth } = await import('../realtime/ws.auth.js');
+const { compileOriginPattern } = await import('../shared/originPattern.js');
 
 const SHOP_ID = 'shop-1';
 const TOKEN = jwt.sign({ sub: 'barber-1', shopId: SHOP_ID, name: 'Samir' }, process.env['JWT_SECRET']);
@@ -44,6 +45,25 @@ function upgrade(opts: { token?: string; shopId?: string; origin?: string }) {
   const result = wsAuth(req, socket as unknown as Socket);
   return { result, socket };
 }
+
+describe('compileOriginPattern — full metacharacter escaping', () => {
+  it('keeps the wildcard semantics (subdomains + optional apex, ports)', () => {
+    const p = compileOriginPattern('https://*.platform.dz');
+    assert.equal(p.test('https://shop.platform.dz'), true);
+    assert.equal(p.test('https://platform.dz'), true);
+    assert.equal(p.test('https://evil-platform.dz'), false);
+    const local = compileOriginPattern('http://localhost:*');
+    assert.equal(local.test('http://localhost:5173'), true);
+  });
+
+  it('treats regex metacharacters in the pattern as literals', () => {
+    const p = compileOriginPattern('https://foo+bar.dz');
+    assert.equal(p.test('https://foo+bar.dz'), true);
+    assert.equal(p.test('https://fooobar.dz'), false); // '+' must not act as a quantifier
+    // A backslash in the pattern can't smuggle regex syntax through.
+    assert.equal(compileOriginPattern('https://a\\d.dz').test('https://a1.dz'), false);
+  });
+});
 
 describe('wsAuth — Origin validation (cross-site WebSocket hijacking guard)', () => {
   it('allows an allowed subdomain origin', () => {
