@@ -4,6 +4,7 @@ import { env } from './config/env.js';
 import { testConnection } from './config/db.js';
 import { attachWebSocketServer } from './realtime/ws.server.js';
 import { registerBookingEmailNotifications } from './notifications/bookingEmails.js';
+import { startPendingExpirySweep } from './sweeps/pendingExpiry.js';
 
 async function main(): Promise<void> {
   await testConnection();
@@ -11,6 +12,7 @@ async function main(): Promise<void> {
   const httpServer = http.createServer(app);
   attachWebSocketServer(httpServer);
   registerBookingEmailNotifications();
+  startPendingExpirySweep();
 
   httpServer.listen(env.PORT, () => {
     console.log(`API listening on port ${env.PORT} [${env.NODE_ENV}]`);

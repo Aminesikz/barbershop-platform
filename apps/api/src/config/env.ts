@@ -36,6 +36,11 @@ const envSchema = z.object({
   BOOKING_MIN_LEAD_MIN: z.coerce.number().int().nonnegative().default(0),
   SLOT_GRANULARITY_MIN: z.coerce.number().int().positive().default(15),
 
+  // Pending bookings hold their slot (the EXCLUDE guard counts 'pending'); the
+  // sweep cancels any still unconfirmed after this many hours. 0 disables it.
+  BOOKING_PENDING_EXPIRE_HOURS: z.coerce.number().int().nonnegative().default(24),
+  BOOKING_EXPIRY_SWEEP_INTERVAL_MIN: z.coerce.number().int().positive().default(5),
+
   // Transactional email (Resend). Optional: when unset, endpoints that must send
   // email (password reset) return 503 instead of pretending to work.
   RESEND_API_KEY: z.string().min(1).optional(),
