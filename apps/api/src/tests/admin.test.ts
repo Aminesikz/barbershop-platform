@@ -165,6 +165,35 @@ describe('Platform admin auth', () => {
     assert.equal(res.status, 401);
     assert.doesNotMatch(String(res.body.error), /not found/i);
   });
+
+  it('SECURITY: login regenerates the session id (fixation defense)', async () => {
+    const sidCookie = (res: { headers: Record<string, string | string[] | undefined> }): string => {
+      const raw = res.headers['set-cookie'];
+      const cookies = Array.isArray(raw) ? raw : raw ? [raw] : [];
+      const sid = cookies.find((c) => c.startsWith('sid='));
+      assert.ok(sid, 'expected a sid Set-Cookie');
+      return sid.split(';')[0] as string;
+    };
+
+    const first = await request(app)
+      .post('/auth/admin/login')
+      .send({ email: 'admin@test.dz', password: 'admin-pass' });
+    assert.equal(first.status, 200);
+    const preLoginSid = sidCookie(first);
+
+    // Authenticate while presenting a pre-existing session cookie: the pre-login
+    // sid must NOT be promoted to an authenticated session (session fixation).
+    const second = await request(app)
+      .post('/auth/admin/login')
+      .set('Cookie', preLoginSid)
+      .send({ email: 'admin@test.dz', password: 'admin-pass' });
+    assert.equal(second.status, 200);
+    assert.notEqual(sidCookie(second), preLoginSid);
+
+    // And the old sid must be destroyed server-side, not merely superseded.
+    const me = await request(app).get('/auth/admin/me').set('Cookie', preLoginSid);
+    assert.equal(me.status, 401);
+  });
 });
 
 // ============================================================

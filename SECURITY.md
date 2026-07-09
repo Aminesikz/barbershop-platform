@@ -173,6 +173,71 @@ curl -s -o /dev/null -D - -H "Origin: https://dzbarbers.com.evil.com" -H "X-Shop
 for i in $(seq 1 5); do curl -s -o /dev/null -D - -H "X-Forwarded-For: 9.9.9.$i" -H "X-Shop-Slug: demo-cuts" $API/api/shop | grep -i '^ratelimit:'; done
 ```
 
+### Assessment 2026-07-09 — CodeQL alert triage (SAST backlog)
+
+Triage of the remaining open CodeQL alerts on `main` (open since 2026-07-02).
+Method: read the flagged code paths and the rule's intent, judge exploitability
+against this app's actual configuration, then either fix or dismiss with a
+recorded rationale — never dismiss on the tool's say-so alone, and never "fix"
+mechanically without understanding what the rule protects against.
+
+#### F-005 — Session id not rotated at login (session fixation) — **Medium — FIXED 2026-07-09**
+
+- **Source:** CodeQL `js/session-fixation`, alerts #4 (owner login,
+  `modules/auth/auth.controller.ts`) and #3 (platform-admin login,
+  `modules/admin/admin.auth.controller.ts`).
+- **Concept:** in a fixation attack the attacker *chooses or learns* the victim's
+  session id **before** the victim authenticates (planted cookie, leaked sid),
+  then waits. If the app keeps the same id across login, the moment the victim
+  signs in, the attacker's saved sid *becomes* an authenticated session — no
+  password theft needed. The canonical defense is to issue a fresh session id at
+  every privilege boundary (`req.session.regenerate()` in express-session), so
+  nothing an attacker knew pre-login survives authentication.
+- **Observation:** both login handlers wrote the principal
+  (`req.session.owner` / `req.session.platformAdmin`) into whatever session was
+  already attached to the request, preserving a pre-login sid.
+- **Exploitability here (honest read):** limited but not zero. Mitigations
+  already in place: `saveUninitialized: false` (anonymous requests are never
+  issued a sid to fixate), and the cookie is `HttpOnly; Secure; SameSite=Strict`
+  (can't be set cross-site). But the cookie is scoped `Domain=.dzbarbers.com`,
+  and **every tenant gets a subdomain** — a cookie written from *any*
+  `*.dzbarbers.com` page (e.g. via XSS on a tenant page) is sent to the console
+  and API too, which is a wider-than-usual fixation write surface for a
+  multi-tenant platform. Classic defense-in-depth: cheap fix, real (if
+  conditional) exposure. Severity: Medium.
+- **Fix:** `req.session.regenerate()` before storing the principal in both
+  handlers. Side benefit at the admin boundary: regeneration also drops any
+  lower-privilege principal (e.g. a shop owner) riding the same sid, so a
+  session can never hold both actors. Regression tests (in `auth.test.ts` and
+  `admin.test.ts`) prove a login presented with a pre-existing sid issues a
+  *different* sid **and** that the old sid is destroyed server-side (verified
+  red against the unfixed handlers before landing).
+- **Verdict:** fixed. Alerts #3/#4 auto-close on the next CodeQL scan of `main`.
+
+#### F-006 — CodeQL `js/user-controlled-bypass` on `requireStaff` — **False positive (dismissed 2026-07-09)**
+
+- **Source:** CodeQL alert #5, `shared/middleware/requireStaff.ts:34`
+  ("condition guards a sensitive action, but a user-provided value controls it").
+- **Concept:** this rule hunts for authorization decided by the mere *presence or
+  content* of attacker-controlled input — e.g. `if (req.headers['x-admin'])
+  next()` or `if (req.query.debug) skipAuth()`. That shape is a genuine bypass
+  because the client can simply supply the value.
+- **Why it doesn't apply here:** the flagged condition `if (token)` only
+  *selects the authentication path* (barber JWT vs. owner session); it never
+  *grants* anything. Access is granted solely by `verifyBarberToken()`, which
+  runs `jwt.verify()` — an HMAC signature check against the server-side
+  `JWT_SECRET` an attacker cannot forge — plus a tenant match
+  (`barber.shopId === req.shop.id`). Every branch fails closed: no token → 401,
+  invalid/expired/tampered token → 401, wrong shop → 403. The distinction the
+  static analyzer misses is *taint vs. trust*: the header value is
+  user-controlled (tainted), but the guard's outcome depends on a cryptographic
+  verification of it, not on its presence.
+- **Evidence:** `auth.test.ts` exercises exactly the forgery cases — tampered
+  signature, token signed with the wrong secret, expired token — all 401.
+- **Verdict:** dismissed as false positive via the code-scanning API, with this
+  entry as the rationale. Revisit only if the middleware ever branches on
+  unverified request data.
+
 ---
 
 ## Phase 7 spec — Caddy frontend security headers (resolves F-001)
