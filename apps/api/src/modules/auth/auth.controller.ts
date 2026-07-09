@@ -24,6 +24,12 @@ export async function ownerLogin(req: Request, res: Response, next: NextFunction
       return;
     }
 
+    // SECURITY: rotate the session id at the privilege boundary (session fixation).
+    // Any sid that existed before authentication must never become an authenticated
+    // sid, so an attacker who planted/knows the pre-login id gains nothing.
+    await new Promise<void>((resolve, reject) => {
+      req.session.regenerate((err) => (err ? reject(err) : resolve()));
+    });
     req.session.owner = { id: result.id, shopId: result.shopId, name: result.name };
 
     // Cookie settings are applied via session middleware config in app.ts

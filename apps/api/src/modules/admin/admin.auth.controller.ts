@@ -13,6 +13,11 @@ export async function adminLogin(req: Request, res: Response): Promise<void> {
     res.status(401).json({ error: 'Invalid credentials' });
     return;
   }
+  // SECURITY: rotate the session id at the privilege boundary (session fixation).
+  // Also drops any lower-privilege principal (e.g. shop owner) riding the same sid.
+  await new Promise<void>((resolve, reject) => {
+    req.session.regenerate((err) => (err ? reject(err) : resolve()));
+  });
   req.session.platformAdmin = { id: result.id, name: result.name };
   res.json({ name: result.name });
 }

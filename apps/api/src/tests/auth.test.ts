@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import session, { type SessionData } from 'express-session';
 
 // ---- Env stub (must run before any module that imports env) ----
 process.env['NODE_ENV'] = 'test';
@@ -77,14 +78,26 @@ mock.module('../config/redis.js', {
   },
 });
 
+// In-memory session store so a login persists into the next request (agent keeps the cookie).
+// Extends the real express-session Store so inherited helpers (regenerate, createSession)
+// exist — ownerLogin calls req.session.regenerate(), which delegates to the store.
+const sessions = new Map<string, SessionData>();
 mock.module('connect-redis', {
-  defaultExport: class {
-    // express-session expects the store to be an EventEmitter (it calls store.on('disconnect'/'connect')).
-    on(_event: string, _cb: (...args: unknown[]) => void): void {}
-    get(_sid: string, cb: (err: unknown, session: unknown) => void): void { cb(null, null); }
-    set(_sid: string, _session: unknown, cb: (err: unknown) => void): void { cb(null); }
-    destroy(_sid: string, cb: (err: unknown) => void): void { cb(null); }
-    touch(_sid: string, _session: unknown, cb: (err: unknown) => void): void { cb(null); }
+  defaultExport: class extends session.Store {
+    get(sid: string, cb: (err: unknown, s?: SessionData | null) => void): void {
+      cb(null, sessions.get(sid) ?? null);
+    }
+    set(sid: string, s: SessionData, cb?: (err?: unknown) => void): void {
+      sessions.set(sid, s);
+      cb?.();
+    }
+    destroy(sid: string, cb?: (err?: unknown) => void): void {
+      sessions.delete(sid);
+      cb?.();
+    }
+    touch(_sid: string, _s: SessionData, cb?: () => void): void {
+      cb?.();
+    }
   },
 });
 
@@ -116,6 +129,15 @@ mock.module('redis', {
 
 // Import app AFTER mocks are wired
 const { app } = await import('../app.js');
+
+/** Extract the `sid=<value>` pair from a response's Set-Cookie, or fail the test. */
+function sidCookie(res: { headers: Record<string, string | string[] | undefined> }): string {
+  const raw = res.headers['set-cookie'];
+  const cookies = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  const sid = cookies.find((c) => c.startsWith('sid='));
+  assert.ok(sid, 'expected a sid Set-Cookie');
+  return sid.split(';')[0] as string;
+}
 
 // ============================================================
 // Owner auth
@@ -170,6 +192,27 @@ describe('Owner auth', () => {
   it('GET /owner/me without session returns 401', async () => {
     const res = await request(app).get('/auth/owner/me');
     assert.equal(res.status, 401);
+  });
+
+  it('SECURITY: login regenerates the session id (fixation defense)', async () => {
+    const first = await request(app)
+      .post('/auth/owner/login')
+      .send({ email: 'owner@shop.dz', password: 'correct-password' });
+    assert.equal(first.status, 200);
+    const preLoginSid = sidCookie(first);
+
+    // Authenticate while presenting a pre-existing session cookie: the pre-login
+    // sid must NOT be promoted to an authenticated session (session fixation).
+    const second = await request(app)
+      .post('/auth/owner/login')
+      .set('Cookie', preLoginSid)
+      .send({ email: 'owner@shop.dz', password: 'correct-password' });
+    assert.equal(second.status, 200);
+    assert.notEqual(sidCookie(second), preLoginSid);
+
+    // And the old sid must be destroyed server-side, not merely superseded.
+    const me = await request(app).get('/auth/owner/me').set('Cookie', preLoginSid);
+    assert.equal(me.status, 401);
   });
 });
 
