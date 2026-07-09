@@ -11,6 +11,23 @@
 	root * /srv
 	encode gzip zstd
 
+	# Security headers on every response. The API sets its own via helmet; these cover
+	# the SPA, which is where a CSP actually matters (this surface executes scripts).
+	# CSP notes:
+	#   script-src 'self'      — the Vite build emits one same-origin module, no inline JS.
+	#   style-src 'unsafe-inline' — React inline style={{…}} props render as style attrs.
+	#   style/font *.gstatic/googleapis — the Google Fonts <link> in index.html.
+	#   connect-src api + wss  — the SPA's REST calls and the live-bookings WebSocket.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.dzbarbers.com wss://api.dzbarbers.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+		-Server
+	}
+
 	# Vite emits content-hashed assets — safe to cache forever.
 	@assets path /assets/*
 	header @assets Cache-Control "public, max-age=31536000, immutable"
