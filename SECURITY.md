@@ -61,7 +61,7 @@ X-Forwarded-For spoofing.
 Letter grades are not comparable across tools (each weights differently); the
 itemized findings below are the authoritative record.
 
-#### F-001 — Frontend SPAs send no HTTP security headers — **Medium — OPEN**
+#### F-001 — Frontend SPAs send no HTTP security headers — **Medium — RESOLVED 2026-07-09**
 
 - **Surface:** `dzbarbers.com`, `admin.dzbarbers.com` (Caddy static host).
 - **Method:** securityheaders.com (F); Observatory (D); `curl -sSI https://dzbarbers.com/`.
@@ -75,11 +75,21 @@ itemized findings below are the authoritative record.
   A instead of A+).
 - **Severity:** Medium. Script-rendering surfaces missing baseline controls; no
   confirmed active exploit, but real clickjacking exposure on the admin console.
-- **Verdict:** Fix. Tracked for the Phase 7 Caddy security-headers PR (spec below).
-- **Note:** the API already sends all of these via `helmet()`
-  (`apps/api/src/app.ts`); the gap is frontend-only. A stale comment in `app.ts`
-  says the frontends are on Vercel — they are on Caddy/Railway; reconcile in the
-  same PR.
+- **Verdict:** Fixed. Both Caddyfiles now set HSTS, `X-Frame-Options: DENY`,
+  `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, and a
+  frontend-specific CSP (see the Phase 7 spec below). Shipped in PR #38, deployed
+  and confirmed live via `curl -sSI` on both hosts. The customer app allows
+  `wss://api.dzbarbers.com` in `connect-src`; the admin app omits it (no WebSocket).
+- **Resolution note:** verified against the real production build — the Vite dev
+  server can't validate a prod CSP (dev needs `unsafe-inline`/`unsafe-eval`), so the
+  built `dist/` was served with the exact headers and loaded in a browser: scripts,
+  CSS, Google Fonts (Inter + Fraunces), and inline styles all load, a fetch to the
+  API and a `wss://` WebSocket both reach the network (CSP-permitted), and zero
+  `securitypolicyviolation` events fired. Expected re-scan result: securityheaders.com
+  F→A, SSL Labs A→A+ on both frontends (HSTS now present).
+- **Note:** the API already sent all of these via `helmet()`; the gap was
+  frontend-only. The stale "Vercel" comment in `app.ts` was corrected in the same PR
+  (frontends are Caddy on Railway).
 
 #### F-002 — Observatory cannot grade the API (404 on host root) — **Informational**
 
