@@ -1,12 +1,20 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import type { ServiceDTO, BarberDTO, BarberAdminDTO, WorkingHourDTO, TimeOffDTO } from '@barber/shared-types';
+import type {
+  ServiceDTO,
+  BarberDTO,
+  BarberAdminDTO,
+  WorkingHourDTO,
+  TimeOffDTO,
+  ReviewAdminDTO,
+  ReviewStatus,
+} from '@barber/shared-types';
 import { api, errorMessage } from '../api';
 import { useAuth, type Principal } from '../app/AuthContext';
 import { useToast } from '../components/Toast';
-import { Badge, Button, Card, Empty, Field, Input, Select, Spinner } from '../components/ui';
+import { Badge, Button, Card, Empty, Field, Input, Select, Spinner, Stars } from '../components/ui';
 import { WEEKDAYS, fmtDateTime, hhmmToMinutes, minutesToHHMM, serviceLabel } from '../util';
 
-type Tab = 'barbers' | 'services' | 'hours' | 'timeoff';
+type Tab = 'barbers' | 'services' | 'hours' | 'timeoff' | 'reviews';
 
 export function AdminPage() {
   const { principal } = useAuth();
@@ -45,12 +53,14 @@ export function AdminPage() {
         {principal.kind === 'owner' ? tabBtn('services', 'Services') : null}
         {tabBtn('hours', 'Working hours')}
         {tabBtn('timeoff', 'Time off')}
+        {principal.kind === 'owner' ? tabBtn('reviews', 'Reviews') : null}
       </div>
 
       {tab === 'barbers' && principal.kind === 'owner' ? <BarbersAdmin onChange={loadBarbers} /> : null}
       {tab === 'services' ? <ServicesAdmin /> : null}
       {tab === 'hours' ? <HoursAdmin principal={principal} barbers={barbers} /> : null}
       {tab === 'timeoff' ? <TimeOffAdmin principal={principal} barbers={barbers} /> : null}
+      {tab === 'reviews' && principal.kind === 'owner' ? <ReviewsAdmin /> : null}
     </div>
   );
 }
@@ -340,6 +350,125 @@ function ServicesAdmin() {
                       {s.isActive ? (
                         <Button size="sm" variant="danger" onClick={() => void remove(s)}>
                           Delete
+                        </Button>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table></div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+/* ----------------------------------------------------------------- Reviews */
+
+const REVIEW_BADGE: Record<ReviewStatus, { status: string; label: string }> = {
+  pending: { status: 'pending', label: 'Pending' },
+  approved: { status: 'confirmed', label: 'Approved' },
+  rejected: { status: 'cancelled', label: 'Rejected' },
+};
+
+function ReviewsAdmin() {
+  const toast = useToast();
+  const [tz, setTz] = useState('Africa/Algiers');
+  const [reviews, setReviews] = useState<ReviewAdminDTO[]>([]);
+  const [filter, setFilter] = useState<'' | ReviewStatus>('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    void api<{ shop: { timezone: string } }>('/api/shop')
+      .then((r) => setTz(r.shop.timezone))
+      .catch(() => undefined);
+  }, []);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    const q = filter ? `?status=${filter}` : '';
+    void api<{ reviews: ReviewAdminDTO[] }>(`/api/reviews/all${q}`)
+      .then((r) => setReviews(r.reviews))
+      .catch((err) => toast(errorMessage(err), 'error'))
+      .finally(() => setLoading(false));
+  }, [filter, toast]);
+  useEffect(load, [load]);
+
+  const moderate = async (r: ReviewAdminDTO, status: 'approved' | 'rejected') => {
+    try {
+      await api(`/api/reviews/${r.id}`, { method: 'PATCH', body: { status } });
+      toast(status === 'approved' ? 'Review published' : 'Review hidden', 'success');
+      load();
+    } catch (err) {
+      toast(errorMessage(err), 'error');
+    }
+  };
+
+  return (
+    <div className="stack">
+      <Card>
+        <div className="card-head">
+          <div>
+            <h2>Customer reviews</h2>
+            <p>
+              Reviews come from post-visit email links, so every one is tied to a completed
+              booking. Only approved reviews appear on your public page.
+            </p>
+          </div>
+          <div style={{ minWidth: 160 }}>
+            <Select value={filter} onChange={(e) => setFilter(e.target.value as '' | ReviewStatus)}>
+              <option value="">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </Select>
+          </div>
+        </div>
+        {loading ? (
+          <Spinner />
+        ) : reviews.length === 0 ? (
+          <Empty>
+            {filter ? 'No reviews with this status.' : 'No reviews yet. They arrive after you mark bookings as completed.'}
+          </Empty>
+        ) : (
+          <div className="table-wrap"><table className="table">
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Barber</th>
+                <th>Rating</th>
+                <th>Review</th>
+                <th>Status</th>
+                <th>Received</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {reviews.map((r) => (
+                <tr key={r.id}>
+                  <td className="cell-strong">{r.customerName}</td>
+                  <td>{r.barberName.nameEn ?? r.barberName.nameAr}</td>
+                  <td>
+                    <Stars value={r.rating} small />
+                  </td>
+                  <td className="cell-muted" style={{ maxWidth: 320, whiteSpace: 'normal' }}>
+                    {r.comment ?? '—'}
+                  </td>
+                  <td>
+                    <Badge status={REVIEW_BADGE[r.status].status} label={REVIEW_BADGE[r.status].label} />
+                  </td>
+                  <td className="cell-muted">{fmtDateTime(r.createdAt, tz)}</td>
+                  <td>
+                    <div className="row-wrap">
+                      {r.status !== 'approved' ? (
+                        <Button size="sm" onClick={() => void moderate(r, 'approved')}>
+                          Approve
+                        </Button>
+                      ) : null}
+                      {r.status !== 'rejected' ? (
+                        <Button size="sm" variant="danger" onClick={() => void moderate(r, 'rejected')}>
+                          {r.status === 'approved' ? 'Hide' : 'Reject'}
                         </Button>
                       ) : null}
                     </div>

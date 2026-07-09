@@ -143,3 +143,49 @@ export interface BookingBroadcastDTO {
   end: string;
   status: BookingStatus;
 }
+
+// ---------------------------------------------------------------------------
+// Reviews — verified (tied to a completed booking via a one-time emailed token)
+// and owner-moderated (only 'approved' ever appears publicly).
+// ---------------------------------------------------------------------------
+
+export type ReviewStatus = 'pending' | 'approved' | 'rejected';
+
+/** Public review card — customerName is ABBREVIATED ("Yacine B."), never the full name. */
+export interface PublicReviewDTO {
+  id: string;
+  barberId: string;
+  customerName: string;
+  rating: number; // 1..5
+  comment: string | null;
+  createdAt: string; // ISO-8601 UTC
+}
+
+/** Aggregates for the public page hero + per-barber cards. Approved reviews only. */
+export interface ReviewSummaryDTO {
+  average: number | null; // null when count is 0
+  count: number;
+  barbers: Array<{ barberId: string; average: number; count: number }>;
+}
+
+/** Owner-facing moderation row — full customer name (staff only). */
+export interface ReviewAdminDTO {
+  id: string;
+  bookingId: string;
+  barberId: string;
+  barberName: { nameAr: string; nameEn: string | null };
+  customerName: string;
+  rating: number;
+  comment: string | null;
+  status: ReviewStatus;
+  createdAt: string;
+  moderatedAt: string | null;
+}
+
+/** What the /review landing page shows before the customer rates their visit. */
+export interface ReviewContextDTO {
+  customerName: string;
+  start: string; // ISO-8601 UTC — when the completed appointment was
+  barber: { nameAr: string; nameEn: string | null };
+  service: { nameAr: string; nameEn: string | null };
+}

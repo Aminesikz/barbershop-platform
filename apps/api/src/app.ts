@@ -18,6 +18,7 @@ import { workingHoursRouter } from './modules/working-hours/workingHours.router.
 import { timeOffRouter } from './modules/time-off/timeOff.router.js';
 import { availabilityRouter } from './modules/availability/availability.router.js';
 import { bookingsRouter } from './modules/bookings/bookings.router.js';
+import { reviewsRouter } from './modules/reviews/reviews.router.js';
 import { adminAuthRouter, adminRouter } from './modules/admin/admin.router.js';
 import { errorHandler } from './shared/middleware/errorHandler.js';
 
@@ -131,6 +132,7 @@ app.use('/api/working-hours', tenantResolver, workingHoursRouter);
 app.use('/api/time-off', tenantResolver, timeOffRouter);
 app.use('/api/availability', tenantResolver, availabilityRouter);
 app.use('/api/bookings', tenantResolver, bookingsRouter);
+app.use('/api/reviews', tenantResolver, reviewsRouter);
 
 // Central error handler must be last
 app.use(errorHandler);

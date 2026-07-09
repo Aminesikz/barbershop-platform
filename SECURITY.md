@@ -137,6 +137,25 @@ Recording what passed is as important as recording gaps.
 - **Cross-site WebSocket hijacking guard:** WS upgrade validates the `Origin`
   header against the same allowlist (shipped 2026-07-08).
 
+#### F-004 — CodeQL `js/missing-token-validation` on the session middleware — **Informational (dismissed 2026-07-09, risk accepted)**
+
+- **Observation:** CodeQL flags the `express-session` middleware in
+  `apps/api/src/app.ts` ("cookie middleware serving request handlers without
+  CSRF protection"). The alert had been open on `main` since 2026-07-02 and
+  resurfaced as "new" on PR #40 because that PR mounts an additional router
+  behind the same middleware.
+- **Assessment:** mitigated by design, per the threat model above. The `sid`
+  cookie is `SameSite=Strict`, so browsers never attach it to any cross-site
+  request — the CSRF vehicle does not exist. Defense in depth: the API accepts
+  only JSON bodies (`express.json`, no form parsing — a cross-origin JSON POST
+  requires a CORS preflight, which the anchored origin allowlist rejects), and
+  there are no state-changing GET handlers. Token middleware (e.g. `csurf`,
+  itself deprecated) would add no protection this configuration doesn't already
+  provide.
+- **Verdict:** dismissed as accepted risk with this document as the rationale.
+  Revisit if the cookie ever moves off `SameSite=Strict` or a form-encoded
+  endpoint is added.
+
 #### Reproduction commands
 
 ```bash

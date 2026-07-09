@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react';
-import type { ServiceDTO, BarberDTO, AvailabilityDTO, PublicBookingDTO } from '@barber/shared-types';
+import type {
+  ServiceDTO,
+  BarberDTO,
+  AvailabilityDTO,
+  PublicBookingDTO,
+  PublicReviewDTO,
+  ReviewSummaryDTO,
+} from '@barber/shared-types';
 import { api, errorMessage } from '../api';
 import { useAuth } from '../app/AuthContext';
 import { useToast } from '../components/Toast';
 import { Avatar, Button, Card, Field, Input, Select, Spinner, Stars } from '../components/ui';
 import { fmtTime, fmtDateTime, todayPlus, uuid, serviceLabel, titleCase } from '../util';
-import { barberMeta, REVIEWS, HIGHLIGHTS } from '../content';
+import { barberMeta, HIGHLIGHTS } from '../content';
 
 function scrollToBooking() {
   document.getElementById('book')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -18,6 +25,8 @@ export function BookPage() {
   const tz = shop?.timezone ?? 'Africa/Algiers';
   const [services, setServices] = useState<ServiceDTO[]>([]);
   const [barbers, setBarbers] = useState<BarberDTO[]>([]);
+  const [reviews, setReviews] = useState<PublicReviewDTO[]>([]);
+  const [reviewSummary, setReviewSummary] = useState<ReviewSummaryDTO | null>(null);
   const [loadingMeta, setLoadingMeta] = useState(true);
 
   const [serviceId, setServiceId] = useState('');
@@ -37,12 +46,15 @@ export function BookPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const [svc, brb] = await Promise.all([
+        const [svc, brb, rev] = await Promise.all([
           api<{ services: ServiceDTO[] }>('/api/services'),
           api<{ barbers: BarberDTO[] }>('/api/barbers'),
+          api<{ summary: ReviewSummaryDTO; reviews: PublicReviewDTO[] }>('/api/reviews'),
         ]);
         setServices(svc.services);
         setBarbers(brb.barbers);
+        setReviews(rev.reviews);
+        setReviewSummary(rev.summary);
       } catch (err) {
         toast(errorMessage(err), 'error');
       } finally {
@@ -111,7 +123,7 @@ export function BookPage() {
     <div className="page page-wide">
       {/* Hero */}
       <section className="hero">
-        <div className="hero-eyebrow">★ Trusted by 500+ clients in Algiers</div>
+        <div className="hero-eyebrow">★ Book online — no phone calls, no waiting</div>
         <h1 className="hero-title">{shopName}</h1>
         <p className="hero-sub">
           Sharp cuts, classic shaves, and a chair that’s always ready. Book your barber online in
@@ -119,9 +131,12 @@ export function BookPage() {
         </p>
         <div className="hero-meta">
           <span className="chip">Open Sun–Thu · 9am – 8pm</span>
-          <span className="chip">
-            <Stars value={5} small /> 4.9 · 320 reviews
-          </span>
+          {reviewSummary && reviewSummary.count > 0 && reviewSummary.average !== null ? (
+            <span className="chip">
+              <Stars value={reviewSummary.average} small /> {reviewSummary.average.toFixed(1)} ·{' '}
+              {reviewSummary.count} {reviewSummary.count === 1 ? 'review' : 'reviews'}
+            </span>
+          ) : null}
           <span className="chip">Walk-ins welcome</span>
         </div>
         <div style={{ marginTop: 22 }}>
@@ -278,6 +293,7 @@ export function BookPage() {
             {barbers.map((b, i) => {
               const m = barberMeta(i);
               const display = b.nameEn ?? b.nameAr;
+              const stats = reviewSummary?.barbers.find((s) => s.barberId === b.id);
               return (
                 <div className="barber-card" key={b.id}>
                   <div className="barber-top">
@@ -288,9 +304,12 @@ export function BookPage() {
                     </div>
                   </div>
                   <p className="barber-bio">{m.bio}</p>
-                  <div className="rating-line">
-                    <Stars value={m.rating} small /> {m.rating.toFixed(1)} · {m.reviews} reviews
-                  </div>
+                  {stats ? (
+                    <div className="rating-line">
+                      <Stars value={stats.average} small /> {stats.average.toFixed(1)} · {stats.count}{' '}
+                      {stats.count === 1 ? 'review' : 'reviews'}
+                    </div>
+                  ) : null}
                   <div className="barber-foot">
                     <span className="barber-specialty">{m.specialty}</span>
                     <Button size="sm" variant="ghost" onClick={() => pickBarber(b.id)}>
@@ -304,26 +323,29 @@ export function BookPage() {
         </section>
       ) : null}
 
-      {/* Reviews */}
-      <section className="section">
-        <div className="section-eyebrow">Reviews</div>
-        <h2 className="section-title">What our clients say</h2>
-        <div className="reviews-grid">
-          {REVIEWS.map((r) => (
-            <div className="review-card" key={r.name}>
-              <Stars value={r.rating} />
-              <p className="review-quote">“{r.text}”</p>
-              <div className="review-author">
-                <Avatar name={r.name} />
-                <div>
-                  <div className="nm">{r.name}</div>
-                  <div className="cell-muted">Verified client</div>
+      {/* Reviews — real, verified (submitted via post-visit review links) and
+          owner-approved. The section only renders once the shop has some. */}
+      {reviews.length > 0 ? (
+        <section className="section">
+          <div className="section-eyebrow">Reviews</div>
+          <h2 className="section-title">What our clients say</h2>
+          <div className="reviews-grid">
+            {reviews.map((r) => (
+              <div className="review-card" key={r.id}>
+                <Stars value={r.rating} />
+                {r.comment ? <p className="review-quote">“{r.comment}”</p> : null}
+                <div className="review-author">
+                  <Avatar name={r.customerName} />
+                  <div>
+                    <div className="nm">{r.customerName}</div>
+                    <div className="cell-muted">Verified client</div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

@@ -202,3 +202,43 @@ CREATE TABLE password_reset_tokens (
 );
 CREATE INDEX idx_prt_owner ON password_reset_tokens(owner_id) WHERE owner_id IS NOT NULL;
 CREATE INDEX idx_prt_barber ON password_reset_tokens(barber_id) WHERE barber_id IS NOT NULL;
+
+-- ---------------------------------------------------------------------------
+-- REVIEW_TOKENS — one-time review invitations (mirrors migration 0004).
+-- Issued when a booking is marked completed, emailed to the customer.
+-- SECURITY: stores a SHA-256 hash of the token, never the token itself.
+-- One per booking (UNIQUE booking_id); single-use via used_at.
+-- ---------------------------------------------------------------------------
+CREATE TABLE review_tokens (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  shop_id    uuid NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+  booking_id uuid NOT NULL UNIQUE REFERENCES bookings(id) ON DELETE CASCADE,
+  token_hash text NOT NULL UNIQUE,
+  expires_at timestamptz NOT NULL,
+  used_at    timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- ---------------------------------------------------------------------------
+-- REVIEWS — verified customer reviews (one per completed booking) with owner
+-- moderation: only status='approved' rows ever appear publicly.
+-- customer_name is copied from the booking at submit time (public display uses
+-- an abbreviated form; the full name stays owner-facing).
+-- ---------------------------------------------------------------------------
+CREATE TABLE reviews (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  shop_id       uuid        NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+  booking_id    uuid        NOT NULL UNIQUE REFERENCES bookings(id) ON DELETE CASCADE,
+  barber_id     uuid        NOT NULL,
+  customer_name text        NOT NULL CHECK (char_length(customer_name) BETWEEN 2 AND 80),
+  rating        smallint    NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  comment       text        CHECK (comment IS NULL OR char_length(comment) <= 600),
+  status        text        NOT NULL DEFAULT 'pending'
+                CHECK (status IN ('pending','approved','rejected')),
+  moderated_at  timestamptz,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (barber_id, shop_id) REFERENCES barber_shops(barber_id, shop_id) ON DELETE CASCADE
+);
+CREATE INDEX idx_reviews_shop_status ON reviews(shop_id, status, created_at DESC);
+CREATE TRIGGER trg_reviews_touch BEFORE UPDATE ON reviews FOR EACH ROW EXECUTE FUNCTION touch_updated_at();

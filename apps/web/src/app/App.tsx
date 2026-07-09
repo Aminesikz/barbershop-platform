@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './AuthContext';
 import { PublicLayout } from './PublicLayout';
 import { BusinessLayout } from './BusinessLayout';
 import { BookPage } from '../pages/BookPage';
+import { ReviewPage } from '../pages/ReviewPage';
 import { ShopNotFound } from '../pages/ShopNotFound';
 import { LandingPage } from '../pages/LandingPage';
 import { ResetPasswordPage } from '../pages/ResetPasswordPage';
@@ -33,6 +34,8 @@ function AppRoutes() {
           {/* Public customer site — no staff/admin affordance. */}
           <Route path="/" element={<PublicLayout />}>
             <Route index element={<BookPage />} />
+            {/* One-time review links from post-visit emails land here. */}
+            <Route path="review" element={<ReviewPage />} />
           </Route>
 
           {/* Business portal — owner/barber login + staff console. */}
