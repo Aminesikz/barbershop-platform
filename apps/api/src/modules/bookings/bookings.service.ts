@@ -271,7 +271,12 @@ export async function transitionBooking(
     `UPDATE bookings SET ${sets.join(', ')} WHERE ${where} RETURNING ${RAW_COLS}`,
     params,
   );
-  if (rows[0]) return toBookingDTO(rows[0]);
+  if (rows[0]) {
+    // Review invitations hang off this (see notifications/reviewEmails.ts). The
+    // 'from: confirmed' guard means a booking can only ever complete once.
+    if (action === 'complete') eventBus.emit('booking.completed', { shopId, bookingId: id });
+    return toBookingDTO(rows[0]);
+  }
 
   // 0 rows updated — distinguish "not found / not yours" (404) from "wrong status" (409).
   const exParams: unknown[] = [id, shopId];

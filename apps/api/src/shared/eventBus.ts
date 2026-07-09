@@ -8,8 +8,16 @@ export interface BookingCreatedEvent {
   booking: BookingBroadcastDTO;
 }
 
+// Deliberately id-only: subscribers fetch anything PII-adjacent from the DB themselves,
+// so the event stays safe to fan out (same convention as BookingCreatedEvent).
+export interface BookingCompletedEvent {
+  shopId: string;
+  bookingId: string;
+}
+
 interface EventMap {
   'booking.created': [BookingCreatedEvent];
+  'booking.completed': [BookingCompletedEvent];
 }
 
 class TypedEventBus extends EventEmitter {

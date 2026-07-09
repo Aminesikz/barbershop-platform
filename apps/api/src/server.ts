@@ -4,6 +4,7 @@ import { env } from './config/env.js';
 import { testConnection } from './config/db.js';
 import { attachWebSocketServer } from './realtime/ws.server.js';
 import { registerBookingEmailNotifications } from './notifications/bookingEmails.js';
+import { registerReviewEmailNotifications } from './notifications/reviewEmails.js';
 import { startPendingExpirySweep } from './sweeps/pendingExpiry.js';
 
 async function main(): Promise<void> {
@@ -12,6 +13,7 @@ async function main(): Promise<void> {
   const httpServer = http.createServer(app);
   attachWebSocketServer(httpServer);
   registerBookingEmailNotifications();
+  registerReviewEmailNotifications();
   startPendingExpirySweep();
 
   httpServer.listen(env.PORT, () => {
