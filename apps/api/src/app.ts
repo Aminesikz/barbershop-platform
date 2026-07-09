@@ -35,10 +35,10 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
-        // The API serves JSON only — the frontends are served separately (Vercel), so
-        // this CSP governs API responses, not the booking page. The page's own
-        // connect-src (to api.* + wss://api.*) is set by the frontend host. Keeping
-        // 'self' here avoids emitting an invalid wildcard directive.
+        // The API serves JSON only — the frontends are served separately (Caddy on
+        // Railway, see apps/web/Caddyfile), so this CSP governs API responses, not the
+        // booking page. The page's own connect-src (to api.* + wss://api.*) is set by
+        // the frontend host. Keeping 'self' here avoids emitting an invalid wildcard.
         connectSrc: ["'self'"],
         objectSrc: ["'none'"],
         frameAncestors: ["'none'"],
