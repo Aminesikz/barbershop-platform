@@ -18,7 +18,7 @@ export function BusinessLayout() {
 
   return (
     <>
-      <header className="app-header">
+      <header className="app-header app-header-staff">
         <div className="brand">
           <span className="brand-dot" /> Business Console
         </div>

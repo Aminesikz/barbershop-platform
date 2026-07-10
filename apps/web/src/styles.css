@@ -1,36 +1,58 @@
 /* ============================================================
-   Warm barbershop palette
+   THE SIGN & THE BOARD
+   A barbershop identity: porcelain tile, bottle-green chair
+   leather, the pole's crimson used sparingly, signage caps for
+   display and price-board mono for every number.
    ============================================================ */
 :root {
-  --bg: #fdfaf6;
+  /* surfaces */
+  --porcelain: #fbfbf9; /* page — cool tile white, not cream */
   --surface: #ffffff;
-  --surface-2: #fff3e4; /* soft beige sections */
-  --text: #2c1810; /* deep warm brown */
-  --muted: #8b6250; /* muted brown */
-  --faint: #b29b8b;
-  --border: #edd9c0; /* light beige */
-  --border-strong: #e3c8a6;
+  --tile: #f2f4f0; /* alternate surface */
+  --line: #e4e7e2; /* hairline rules */
+  --line-strong: #c8d0c9;
 
-  --accent: #c8772a; /* warm brown/amber */
-  --accent-hover: #b0661f;
-  --accent-2: #e8a44a; /* golden orange */
-  --highlight: #f5c47e; /* light golden */
-  --accent-weak: #fcebd5;
+  /* text */
+  --ink: #101b14; /* green-black */
+  --steel: #5c6862; /* secondary */
+  --faint: #99a39c;
 
-  --star: #e8a44a;
+  /* working color — bottle green */
+  --bottle: #17513c;
+  --bottle-deep: #0e3d2b;
+  --bottle-weak: #e9f0eb;
 
-  /* functional (errors only — kept readable, harmonized warm-red) */
-  --danger: #b23a2e;
-  --danger-bg: #f9e7e2;
-  --ok: #1f7a4d;
+  /* the pole's red: stripe + destructive only */
+  --pole-red: #c03434;
+  --pole-red-deep: #a02a2a;
+  --red-weak: #f9e9e7;
 
-  --radius: 14px;
-  --radius-sm: 9px;
-  --shadow-sm: 0 1px 2px rgba(80, 50, 20, 0.04), 0 2px 6px rgba(80, 50, 20, 0.05);
-  --shadow-md: 0 8px 28px rgba(120, 75, 30, 0.1);
+  /* brass fittings — stars, "needs attention" */
+  --brass: #8a5a12;
+  --brass-weak: #f5ebd7;
+  --star: #c98a1b;
 
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --ok: var(--bottle);
+  --danger: var(--pole-red);
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow-pop: 0 10px 30px rgba(16, 27, 20, 0.14); /* toasts/popovers only */
+
+  --font: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Archivo', 'Arial Narrow', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* the barber pole, as a tiling 45° stripe (green · white · red · white) */
+  --stripe: linear-gradient(
+    135deg,
+    var(--bottle) 25%,
+    #fff 25%,
+    #fff 50%,
+    var(--pole-red) 50%,
+    var(--pole-red) 75%,
+    #fff 75%
+  );
 }
 
 * {
@@ -43,8 +65,8 @@ body {
 }
 body {
   font-family: var(--font);
-  background: var(--bg);
-  color: var(--text);
+  background: var(--porcelain);
+  color: var(--ink);
   font-size: 14px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
@@ -58,12 +80,34 @@ h4 {
   letter-spacing: -0.01em;
 }
 a {
-  color: var(--accent);
+  color: var(--bottle);
   text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+::selection {
+  background: var(--bottle);
+  color: #fff;
+}
+
+/* one visible focus language everywhere */
+:is(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--bottle);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* display voice: storefront signage */
+.sign {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  text-transform: uppercase;
 }
 
 /* ============================================================
-   Header
+   Header — carries the pole
    ============================================================ */
 .app-header {
   position: sticky;
@@ -72,27 +116,56 @@ a {
   display: flex;
   align-items: center;
   gap: 20px;
-  padding: 0 24px;
-  height: 58px;
-  background: rgba(253, 250, 246, 0.86);
+  padding: 4px 24px 0; /* top 4px belongs to the stripe */
+  height: 60px;
+  background: rgba(251, 251, 249, 0.92);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
+.app-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background-image: var(--stripe);
+  background-size: 28px 28px;
+  animation: pole-drift 6s linear infinite;
+}
+@keyframes pole-drift {
+  to {
+    background-position: 28px 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-header::before {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
+
 .brand {
   display: flex;
   align-items: center;
-  gap: 9px;
-  font-weight: 600;
-  font-size: 16px;
-  letter-spacing: -0.02em;
+  gap: 10px;
   font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 800;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
+/* the brand mark is a small pole chip */
 .brand-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-weak);
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background-image: var(--stripe);
+  background-size: 10px 10px;
+  border: 1px solid var(--ink);
 }
 .nav {
   display: flex;
@@ -103,19 +176,20 @@ a {
   border: none;
   background: none;
   font: inherit;
-  color: var(--muted);
+  color: var(--steel);
   padding: 7px 13px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-weight: 500;
 }
 .nav button:hover {
-  background: var(--surface-2);
-  color: var(--text);
+  background: var(--tile);
+  color: var(--ink);
 }
 .nav button.active {
-  background: var(--accent-weak);
-  color: var(--accent);
+  background: var(--bottle-weak);
+  color: var(--bottle);
+  font-weight: 600;
 }
 .header-right {
   margin-left: auto;
@@ -123,30 +197,52 @@ a {
   align-items: center;
   gap: 12px;
 }
-.shop-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  color: var(--muted);
-}
-.shop-pill input {
-  width: 110px;
-  padding: 5px 9px;
-  font: inherit;
-  font-size: 12.5px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text);
-}
 .who {
   font-size: 12.5px;
-  color: var(--muted);
+  color: var(--steel);
 }
 .who strong {
-  color: var(--text);
+  color: var(--ink);
   font-weight: 600;
+}
+
+/* staff console wears the dark coat — customers never see this */
+.app-header-staff {
+  background: var(--ink);
+  border-bottom-color: var(--ink);
+  color: #fff;
+}
+.app-header-staff .brand {
+  color: #fff;
+}
+.app-header-staff .brand-dot {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+.app-header-staff .nav button {
+  color: rgba(255, 255, 255, 0.65);
+}
+.app-header-staff .nav button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.app-header-staff .nav button.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.app-header-staff .who {
+  color: rgba(255, 255, 255, 0.65);
+}
+.app-header-staff .who strong {
+  color: #fff;
+}
+.app-header-staff .btn-ghost {
+  background: transparent;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.app-header-staff .btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.6);
 }
 
 /* ============================================================
@@ -164,12 +260,16 @@ a {
   margin-bottom: 20px;
 }
 .page-head h1 {
-  font-size: 22px;
   font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 20px;
+  letter-spacing: 0.02em;
 }
 .page-head p {
   margin: 5px 0 0;
-  color: var(--muted);
+  color: var(--steel);
 }
 .grid-2 {
   display: grid;
@@ -201,133 +301,147 @@ a {
 }
 
 /* ============================================================
-   Hero
+   Hero — the storefront sign. No box: type directly on the tile.
    ============================================================ */
 .hero {
-  background: linear-gradient(160deg, var(--surface-2) 0%, #fde9d0 100%);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 44px 40px;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
+  padding: 46px 0 34px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
 }
 .hero-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--accent);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  padding: 5px 12px;
-  border-radius: 999px;
-  margin-bottom: 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bottle);
+  margin-bottom: 14px;
 }
 .hero-title {
   font-family: var(--font-display);
-  font-weight: 600;
-  font-size: clamp(30px, 9vw, 44px);
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  margin: 0 0 12px;
+  font-stretch: 125%;
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(38px, 9.5vw, 74px);
+  line-height: 0.95;
+  letter-spacing: 0.005em;
+  margin: 0 0 16px;
   overflow-wrap: break-word;
+  max-width: 14ch;
+}
+/* the pole underlines the name — the page's one flourish beside the header */
+.hero-rule {
+  width: 104px;
+  height: 8px;
+  border-radius: 4px;
+  background-image: var(--stripe);
+  background-size: 14px 14px;
+  border: 1px solid var(--line);
+  margin: 0 0 18px;
 }
 .hero-sub {
-  max-width: 540px;
-  margin: 0 auto 22px;
-  color: var(--muted);
+  max-width: 480px;
+  margin: 0 0 16px;
+  color: var(--steel);
   font-size: 15.5px;
 }
 .hero-meta {
   display: flex;
+  align-items: center;
   gap: 8px;
-  justify-content: center;
   flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--steel);
+  margin-bottom: 24px;
 }
+.hero-meta .sep {
+  color: var(--line-strong);
+}
+.hero-meta strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+/* legacy chip — kept quiet for any remaining uses */
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  padding: 6px 12px;
-  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--steel);
 }
 
-/* highlights */
+/* highlights — a ruled strip, words only. The 1px gap over a line-colored
+   backdrop draws the rules for any row count. */
 .highlights {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  gap: 1px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--line);
+}
+.highlight {
+  padding: 18px 20px;
+  background: var(--surface);
 }
 @media (max-width: 720px) {
   .highlights {
     grid-template-columns: 1fr;
   }
 }
-.highlight {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 18px;
-  display: flex;
-  gap: 13px;
-  align-items: flex-start;
-}
-.highlight .ico {
-  width: 38px;
-  height: 38px;
-  flex: none;
-  border-radius: 10px;
-  background: var(--accent-weak);
-  color: var(--accent);
-  display: grid;
-  place-items: center;
-  font-size: 18px;
+.highlight-num {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--bottle);
+  margin-bottom: 6px;
 }
 .highlight h4 {
-  font-size: 14px;
-  margin-bottom: 2px;
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  text-transform: uppercase;
+  font-size: 12.5px;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
 }
 .highlight p {
   margin: 0;
-  font-size: 12.5px;
-  color: var(--muted);
+  font-size: 13px;
+  color: var(--steel);
 }
 
 /* section heading */
 .section {
-  margin-top: 38px;
+  margin-top: 44px;
 }
 .section-eyebrow {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--bottle);
   margin-bottom: 6px;
 }
 .section-title {
   font-family: var(--font-display);
-  font-size: 26px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-stretch: 125%;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 24px;
+  letter-spacing: 0.01em;
   margin-bottom: 18px;
 }
 
 /* ============================================================
-   Card
+   Card — hairline, near-flat
    ============================================================ */
 .card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
 }
 .card-pad {
   padding: 20px;
@@ -337,16 +451,154 @@ a {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
 .card-head h2 {
-  font-size: 16px;
   font-family: var(--font-display);
+  font-stretch: 125%;
+  text-transform: uppercase;
+  font-size: 14px;
+  letter-spacing: 0.04em;
 }
 .card-head p {
   margin: 2px 0 0;
   font-size: 12.5px;
-  color: var(--muted);
+  color: var(--steel);
+}
+
+/* ============================================================
+   The booking board — numbered steps inside one card
+   ============================================================ */
+.board-section {
+  padding: 4px 20px 20px;
+}
+.board-section + .board-section {
+  border-top: 1px solid var(--line);
+}
+.step-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 16px 0 12px;
+}
+.step-num {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pole-red);
+}
+.step-head h3 {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  text-transform: uppercase;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+}
+.step-head .rule {
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* the price board: dotted leaders, mono prices */
+.board-list {
+  display: flex;
+  flex-direction: column;
+}
+.board-row {
+  appearance: none;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 12px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  color: var(--ink);
+  border-radius: 0;
+  transition: background 0.14s;
+}
+.board-row:last-child {
+  border-bottom: none;
+}
+.board-row:hover {
+  background: var(--tile);
+}
+.board-row.selected {
+  background: var(--bottle-weak);
+  box-shadow: inset 3px 0 0 var(--bottle);
+}
+.board-name {
+  font-weight: 600;
+}
+.board-meta {
+  font-size: 12px;
+  color: var(--steel);
+  white-space: nowrap;
+}
+.board-leader {
+  flex: 1;
+  border-bottom: 2px dotted var(--line-strong);
+  transform: translateY(-3px);
+  min-width: 24px;
+}
+.board-price {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.board-row.selected .board-price {
+  color: var(--bottle);
+}
+
+/* barber picker chips */
+.pick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pick {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 8px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  cursor: pointer;
+  color: var(--ink);
+  transition: border-color 0.14s, background 0.14s;
+}
+.pick:hover {
+  border-color: var(--bottle);
+}
+.pick.selected {
+  border-color: var(--bottle);
+  background: var(--bottle-weak);
+  box-shadow: 0 0 0 1px var(--bottle);
+}
+.pick .avatar {
+  width: 34px;
+  height: 34px;
+  font-size: 13px;
+  border-radius: 5px;
+}
+.pick-name {
+  font-weight: 600;
+  line-height: 1.2;
+}
+.pick-sub {
+  display: block;
+  font-size: 11.5px;
+  color: var(--steel);
+  font-weight: 400;
 }
 
 /* ============================================================
@@ -358,35 +610,42 @@ a {
   gap: 6px;
 }
 .field label {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--muted);
+  color: var(--steel);
+  letter-spacing: 0.02em;
 }
 .input,
 .select {
   width: 100%;
   padding: 10px 12px;
   font: inherit;
-  color: var(--text);
+  color: var(--ink);
   background: var(--surface);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   outline: none;
   transition: border-color 0.12s, box-shadow 0.12s;
 }
 .input:focus,
 .select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-weak);
+  border-color: var(--bottle);
+  box-shadow: 0 0 0 3px var(--bottle-weak);
 }
 .input::placeholder {
   color: var(--faint);
 }
 .input:disabled,
 .select:disabled {
-  background: var(--surface-2);
-  color: var(--muted);
+  background: var(--tile);
+  color: var(--steel);
   cursor: not-allowed;
+}
+input[type='date'].input,
+input[type='time'].input,
+input[type='datetime-local'].input {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
 }
 
 /* ============================================================
@@ -414,97 +673,102 @@ a {
   cursor: not-allowed;
 }
 .btn-primary {
-  background: var(--accent);
+  background: var(--bottle);
   color: #fff;
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--accent-hover);
+  background: var(--bottle-deep);
 }
 .btn-ghost {
   background: var(--surface);
-  color: var(--text);
-  border-color: var(--border-strong);
+  color: var(--ink);
+  border-color: var(--line-strong);
 }
 .btn-ghost:hover:not(:disabled) {
-  background: var(--surface-2);
-  border-color: var(--accent);
+  background: var(--tile);
+  border-color: var(--steel);
 }
 .btn-danger {
   background: var(--surface);
-  color: var(--danger);
-  border-color: var(--border-strong);
+  color: var(--pole-red);
+  border-color: var(--line-strong);
 }
 .btn-danger:hover:not(:disabled) {
-  background: var(--danger-bg);
-  border-color: var(--danger);
+  background: var(--red-weak);
+  border-color: var(--pole-red);
 }
 .btn-lg {
-  padding: 12px 22px;
+  padding: 13px 24px;
   font-size: 15px;
 }
 .btn-sm {
   padding: 6px 11px;
   font-size: 12.5px;
 }
+a.btn:hover {
+  text-decoration: none;
+}
 
-/* slots */
+/* time slots — the appointment book */
 .slot-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
   gap: 8px;
 }
 .slot {
   appearance: none;
-  font: inherit;
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
   padding: 10px 6px;
   text-align: center;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--line-strong);
   background: var(--surface);
-  color: var(--text);
+  color: var(--ink);
   cursor: pointer;
-  transition: all 0.12s;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
 }
 .slot:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-weak);
+  border-color: var(--bottle);
+  color: var(--bottle);
 }
 .slot.selected {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--bottle);
+  border-color: var(--bottle);
   color: #fff;
 }
 
 /* ============================================================
-   Badges
+   Badges — tape labels, not pills
    ============================================================ */
 .badge {
   display: inline-flex;
   align-items: center;
-  font-size: 11.5px;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 999px;
-  text-transform: capitalize;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
 }
 .badge-pending {
-  color: #9a5a1c;
-  background: var(--accent-weak);
+  color: var(--brass);
+  background: var(--brass-weak);
 }
 .badge-confirmed {
-  color: #7a3f12;
-  background: var(--highlight);
+  color: var(--bottle);
+  background: var(--bottle-weak);
 }
 .badge-completed {
   color: #fff;
-  background: var(--accent);
+  background: var(--ink);
 }
 .badge-cancelled,
 .badge-no_show {
-  color: var(--muted);
-  background: #f1e7da;
+  color: var(--steel);
+  background: var(--tile);
 }
 
 /* ============================================================
@@ -516,35 +780,36 @@ a {
 }
 .table th {
   text-align: left;
-  font-size: 11.5px;
-  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   color: var(--faint);
   padding: 11px 16px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
 .table td {
   padding: 13px 16px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }
 .table tr:last-child td {
   border-bottom: none;
 }
 .table tbody tr:hover {
-  background: var(--surface-2);
+  background: var(--porcelain);
 }
 .cell-strong {
   font-weight: 600;
 }
 .cell-muted {
-  color: var(--muted);
+  color: var(--steel);
   font-size: 13px;
 }
 
 /* ============================================================
-   Barbers (about)
+   Barbers (the team)
    ============================================================ */
 .barber-grid {
   display: grid;
@@ -553,65 +818,72 @@ a {
 }
 .barber-card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 22px;
-  box-shadow: var(--shadow-sm);
 }
 .barber-top {
   display: flex;
   gap: 14px;
   align-items: center;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 .avatar {
-  width: 54px;
-  height: 54px;
+  width: 52px;
+  height: 52px;
   flex: none;
-  border-radius: 50%;
+  border-radius: 6px; /* mirror tile, not a bubble */
   display: grid;
   place-items: center;
   font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 20px;
+  font-stretch: 125%;
+  font-weight: 800;
+  font-size: 19px;
   color: #fff;
-  background: linear-gradient(150deg, var(--accent-2), var(--accent));
+  background: var(--bottle);
 }
 .barber-name {
   font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 600;
+  font-stretch: 125%;
+  text-transform: uppercase;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 .barber-role {
-  font-size: 12.5px;
-  color: var(--accent);
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bottle);
 }
 .barber-bio {
   font-size: 13px;
-  color: var(--muted);
-  margin: 0 0 14px;
+  color: var(--steel);
+  margin: 0 0 12px;
 }
 .barber-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   padding-top: 14px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
 }
 .barber-specialty {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--steel);
 }
 
-/* stars */
+/* stars — brass */
 .stars {
   display: inline-flex;
   gap: 1px;
   line-height: 1;
+  font-family: var(--font); /* keep the ★ glyph consistent inside mono contexts */
 }
 .stars .star {
-  color: var(--border-strong);
+  color: var(--line-strong);
   font-size: 14px;
 }
 .stars .star.on {
@@ -620,7 +892,6 @@ a {
 .stars-sm .star {
   font-size: 12px;
 }
-/* interactive star picker (review form) */
 .star-picker {
   display: inline-flex;
   align-items: center;
@@ -631,31 +902,31 @@ a {
   border: none;
   padding: 2px;
   cursor: pointer;
-  font-size: 28px;
+  font-size: 30px;
   line-height: 1;
-  color: var(--border-strong);
-  transition: transform 0.1s ease, color 0.1s ease;
+  color: var(--line-strong);
+  transition: color 0.1s ease;
 }
 .star-picker .star:hover {
-  transform: scale(1.15);
+  color: var(--star);
 }
 .star-picker .star.on {
   color: var(--star);
 }
 .star-picker-label {
-  margin-left: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
+  margin-left: 10px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--steel);
 }
-
 .rating-line {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
-  color: var(--muted);
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--steel);
 }
 
 /* reviews */
@@ -666,17 +937,16 @@ a {
 }
 .review-card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 20px;
-  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 .review-quote {
   font-size: 14px;
-  color: var(--text);
+  color: var(--ink);
   margin: 0;
   flex: 1;
 }
@@ -686,9 +956,10 @@ a {
   gap: 10px;
 }
 .review-author .avatar {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   font-size: 13px;
+  border-radius: 5px;
 }
 .review-author .nm {
   font-weight: 600;
@@ -696,12 +967,58 @@ a {
 }
 
 /* ============================================================
+   The ticket — booking confirmation as a stub
+   ============================================================ */
+.success-box {
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 20px;
+}
+.ticket-head {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  text-transform: uppercase;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.03em;
+  color: var(--bottle);
+  margin-bottom: 12px;
+}
+.ticket-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 4px;
+}
+.ticket-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13.5px;
+}
+.ticket-row .k {
+  color: var(--steel);
+  font-size: 12px;
+  min-width: 64px;
+}
+.ticket-row .leader {
+  flex: 1;
+  border-bottom: 2px dotted var(--line);
+  transform: translateY(-3px);
+}
+.ticket-row .v {
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+/* ============================================================
    Footer
    ============================================================ */
 .footer {
   margin-top: 56px;
-  background: var(--text);
-  color: #f4e7d8;
+  background: var(--ink);
+  color: #cfd8d1;
 }
 .footer-inner {
   max-width: 1040px;
@@ -720,25 +1037,33 @@ a {
 .footer-brand {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 600;
+  font-stretch: 125%;
+  text-transform: uppercase;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
   color: #fff;
   margin-bottom: 10px;
 }
+.footer-brand .brand-dot {
+  border-color: rgba(255, 255, 255, 0.4);
+}
 .footer-about {
   font-size: 13px;
-  color: #cbb29c;
+  color: #93a29a;
   max-width: 320px;
   margin: 0;
 }
 .footer-col h4 {
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--highlight);
+  letter-spacing: 0.14em;
+  color: #7fa08f;
   margin-bottom: 12px;
+  font-weight: 500;
 }
 .footer-list {
   list-style: none;
@@ -748,29 +1073,38 @@ a {
   flex-direction: column;
   gap: 8px;
   font-size: 13px;
-  color: #ddc9b5;
+  color: #cfd8d1;
 }
 .footer-list li {
   display: flex;
   justify-content: space-between;
   gap: 16px;
 }
+.footer-list li span:last-child {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
 .footer-list.plain li {
   display: block;
 }
 .footer-bottom {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding: 16px 24px;
   text-align: center;
   font-size: 12px;
-  color: #b39a83;
+  color: #7d8c84;
+}
+/* standalone footer-bottom (landing page) sits on the light page */
+main + .footer-bottom {
+  border-top: 1px solid var(--line);
+  color: var(--faint);
 }
 
 /* segmented control (owner/barber toggle) */
 .seg-group {
   display: inline-flex;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: var(--tile);
+  border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   padding: 3px;
   gap: 3px;
@@ -781,21 +1115,22 @@ a {
   background: none;
   font: inherit;
   font-weight: 600;
-  color: var(--muted);
+  color: var(--steel);
   padding: 7px 18px;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
 }
 .seg.active {
   background: var(--surface);
-  color: var(--accent);
-  box-shadow: var(--shadow-sm);
+  color: var(--bottle);
+  border: 1px solid var(--line-strong);
+  padding: 6px 17px;
 }
 
 /* business pitch block */
 .pitch {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 28px;
 }
@@ -809,27 +1144,20 @@ a {
   color: var(--faint);
 }
 .muted {
-  color: var(--muted);
+  color: var(--steel);
 }
 .hint {
   font-size: 12.5px;
-  color: var(--muted);
+  color: var(--steel);
 }
 .error-text {
-  color: var(--danger);
+  color: var(--pole-red);
   font-size: 12.5px;
 }
 .steps {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-}
-.success-box {
-  padding: 18px 20px;
-  border: 1px solid var(--accent);
-  background: var(--accent-weak);
-  border-radius: var(--radius);
-  color: #7a3f12;
 }
 .toast-wrap {
   position: fixed;
@@ -845,23 +1173,30 @@ a {
 .toast {
   padding: 11px 18px;
   border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-pop);
   font-size: 13px;
   font-weight: 600;
-  background: var(--text);
+  background: var(--ink);
   color: #fff;
+  animation: toast-in 0.2s ease-out;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 .toast.toast-error {
-  background: var(--danger);
+  background: var(--pole-red-deep);
 }
 .toast.toast-success {
-  background: var(--accent);
+  background: var(--bottle);
 }
 .spinner {
   width: 18px;
   height: 18px;
-  border: 2px solid var(--border-strong);
-  border-top-color: var(--accent);
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--bottle);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -879,8 +1214,11 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  color: var(--ok);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--bottle);
   font-weight: 600;
 }
 .live-dot::before {
@@ -888,26 +1226,24 @@ a {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--ok);
+  background: var(--bottle);
   animation: pulse 1.8s infinite;
 }
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(31, 122, 77, 0.4);
+    box-shadow: 0 0 0 0 rgba(23, 81, 60, 0.4);
   }
   70% {
-    box-shadow: 0 0 0 6px rgba(31, 122, 77, 0);
+    box-shadow: 0 0 0 6px rgba(23, 81, 60, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(31, 122, 77, 0);
+    box-shadow: 0 0 0 0 rgba(23, 81, 60, 0);
   }
 }
 
 /* ============================================================
    Responsive — phones & touch
    ============================================================ */
-/* Horizontal scroll container for data tables (they keep readable column
-   widths on phones instead of crushing). */
 .table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -917,12 +1253,11 @@ a {
   .page {
     padding: 20px 16px 48px;
   }
-  /* Header wraps to two rows: brand + actions, then full-width nav tabs. */
   .app-header {
     flex-wrap: wrap;
     height: auto;
-    min-height: 58px;
-    padding: 10px 16px;
+    min-height: 60px;
+    padding: 12px 16px 8px;
     gap: 8px 12px;
   }
   .nav {
@@ -934,7 +1269,7 @@ a {
     text-align: center;
   }
   .hero {
-    padding: 30px 18px;
+    padding: 30px 0 26px;
   }
   .card-pad {
     padding: 16px;
@@ -943,6 +1278,15 @@ a {
     flex-wrap: wrap;
     gap: 10px;
     padding: 14px 16px;
+  }
+  .board-section {
+    padding: 4px 14px 16px;
+  }
+  .board-row {
+    padding: 13px 8px;
+  }
+  .board-meta {
+    display: none; /* keep name … price on one clean line */
   }
   .pitch {
     padding: 20px 16px;
@@ -999,10 +1343,10 @@ a {
     display: none;
   }
   .page-head h1 {
-    font-size: 20px;
+    font-size: 18px;
   }
   .section-title {
-    font-size: 22px;
+    font-size: 20px;
   }
 }
 
@@ -1019,5 +1363,11 @@ a {
   }
   .seg {
     padding: 10px 18px;
+  }
+  .board-row {
+    padding: 15px 10px;
+  }
+  .pick {
+    padding: 10px 16px 10px 10px;
   }
 }

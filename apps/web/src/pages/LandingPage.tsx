@@ -52,8 +52,9 @@ export function LandingPage() {
           <section className="hero">
             <div className="hero-eyebrow">{L.eyebrow}</div>
             <h1 className="hero-title">{L.headline}</h1>
+            <div className="hero-rule" aria-hidden="true" />
             <p className="hero-sub">{L.sub}</p>
-            <div className="row-wrap" style={{ justifyContent: 'center' }}>
+            <div className="row-wrap">
               <a className="btn btn-primary btn-lg" href={`mailto:${DEVELOPER_CONTACT.email}`}>
                 Get your shop online
               </a>
@@ -69,11 +70,8 @@ export function LandingPage() {
             <div className="highlights">
               {L.features.map((f) => (
                 <div key={f.title} className="highlight">
-                  <div className="ico">{f.icon}</div>
-                  <div>
-                    <h4>{f.title}</h4>
-                    <p>{f.text}</p>
-                  </div>
+                  <h4>{f.title}</h4>
+                  <p>{f.text}</p>
                 </div>
               ))}
             </div>
@@ -85,11 +83,9 @@ export function LandingPage() {
             <div className="highlights">
               {L.steps.map((s) => (
                 <div key={s.n} className="highlight">
-                  <div className="ico">{s.n}</div>
-                  <div>
-                    <h4>{s.title}</h4>
-                    <p>{s.text}</p>
-                  </div>
+                  <div className="highlight-num">{s.n.padStart(2, '0')}</div>
+                  <h4>{s.title}</h4>
+                  <p>{s.text}</p>
                 </div>
               ))}
             </div>
