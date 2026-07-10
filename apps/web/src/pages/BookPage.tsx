@@ -12,7 +12,7 @@ import { useAuth } from '../app/AuthContext';
 import { useToast } from '../components/Toast';
 import { Avatar, Button, Card, Field, Input, Select, Spinner, Stars } from '../components/ui';
 import { fmtTime, fmtDateTime, todayPlus, uuid, serviceLabel, titleCase } from '../util';
-import { barberMeta, HIGHLIGHTS } from '../content';
+import { HIGHLIGHTS } from '../content';
 
 function scrollToBooking() {
   document.getElementById('book')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -290,8 +290,7 @@ export function BookPage() {
           <div className="section-eyebrow">The team</div>
           <h2 className="section-title">Meet our barbers</h2>
           <div className="barber-grid">
-            {barbers.map((b, i) => {
-              const m = barberMeta(i);
+            {barbers.map((b) => {
               const display = b.nameEn ?? b.nameAr;
               const stats = reviewSummary?.barbers.find((s) => s.barberId === b.id);
               return (
@@ -300,10 +299,10 @@ export function BookPage() {
                     <Avatar name={display} />
                     <div>
                       <div className="barber-name">{display}</div>
-                      <div className="barber-role">{m.role}</div>
+                      <div className="barber-role">{b.role ?? 'Barber'}</div>
                     </div>
                   </div>
-                  <p className="barber-bio">{m.bio}</p>
+                  {b.bio ? <p className="barber-bio">{b.bio}</p> : null}
                   {stats ? (
                     <div className="rating-line">
                       <Stars value={stats.average} small /> {stats.average.toFixed(1)} · {stats.count}{' '}
@@ -311,7 +310,7 @@ export function BookPage() {
                     </div>
                   ) : null}
                   <div className="barber-foot">
-                    <span className="barber-specialty">{m.specialty}</span>
+                    <span className="barber-specialty">{b.specialty ?? ''}</span>
                     <Button size="sm" variant="ghost" onClick={() => pickBarber(b.id)}>
                       Book
                     </Button>

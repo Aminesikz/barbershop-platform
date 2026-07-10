@@ -41,6 +41,11 @@ CREATE TABLE barbers (
   password_hash text        NOT NULL,
   name_ar       text        NOT NULL,
   name_en       text,
+  -- Owner-written public profile (mirrors migration 0005). Shown on the shop
+  -- page barber cards; all optional — the page renders only what's set.
+  role_title    text        CHECK (role_title IS NULL OR char_length(role_title) <= 60),
+  specialty     text        CHECK (specialty IS NULL OR char_length(specialty) <= 100),
+  bio           text        CHECK (bio IS NULL OR char_length(bio) <= 400),
   is_active     boolean     NOT NULL DEFAULT true,
   created_at    timestamptz NOT NULL DEFAULT now()
 );

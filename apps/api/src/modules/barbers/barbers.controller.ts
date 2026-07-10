@@ -4,6 +4,28 @@ import { getShop } from '../../shared/reqContext.js';
 import { notFound } from '../../shared/httpError.js';
 import * as svc from './barbers.service.js';
 
+// Public profile fields: trimmed, bounded (mirrors the DB CHECKs), '' → null so
+// the frontend can clear a field by submitting it empty.
+const profileField = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .nullish()
+    .transform((v) => (v ? v : null));
+
+// PATCH variant: an OMITTED key must stay undefined (= leave unchanged) — only an
+// explicitly sent ''/null clears. `.optional()` wraps the transform so it never
+// runs for absent keys.
+const patchProfileField = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .nullable()
+    .transform((v) => (v ? v : null))
+    .optional();
+
 const createSchema = z
   .object({
     email: z.string().email().max(254),
@@ -15,10 +37,21 @@ const createSchema = z
       .nullish()
       .transform((v) => v ?? null),
     password: z.string().min(8).max(200),
+    role: profileField(60),
+    specialty: profileField(100),
+    bio: profileField(400),
   })
   .strict();
 
-const updateSchema = z.object({ isActive: z.boolean() }).strict();
+const updateSchema = z
+  .object({
+    isActive: z.boolean().optional(),
+    role: patchProfileField(60),
+    specialty: patchProfileField(100),
+    bio: patchProfileField(400),
+  })
+  .strict()
+  .refine((v) => Object.values(v).some((x) => x !== undefined), { message: 'Nothing to update' });
 
 const idParam = z.object({ id: z.string().uuid() });
 
@@ -35,12 +68,12 @@ export async function create(req: Request, res: Response): Promise<void> {
   res.status(201).json({ barber });
 }
 
-/** Owner-only: deactivate / reactivate a barber's membership in this shop. */
-export async function setActive(req: Request, res: Response): Promise<void> {
+/** Owner-only: toggle membership and/or edit the public profile. */
+export async function update(req: Request, res: Response): Promise<void> {
   const shop = getShop(req);
   const { id } = idParam.parse(req.params);
-  const { isActive } = updateSchema.parse(req.body);
-  const barber = await svc.setBarberActive(shop.id, id, isActive);
+  const patch = updateSchema.parse(req.body);
+  const barber = await svc.updateBarber(shop.id, id, patch);
   if (!barber) throw notFound('Barber not found');
   res.json({ barber });
 }

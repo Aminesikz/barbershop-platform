@@ -25,6 +25,6 @@ router.get(
 // Owner-only management (incl. inactive, with email).
 router.get('/all', requireOwner, asyncHandler(ctrl.listAll));
 router.post('/', requireOwner, asyncHandler(ctrl.create));
-router.patch('/:id', requireOwner, asyncHandler(ctrl.setActive));
+router.patch('/:id', requireOwner, asyncHandler(ctrl.update));
 
 export { router as barbersRouter };
