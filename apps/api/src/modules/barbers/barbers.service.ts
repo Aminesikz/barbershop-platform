@@ -8,19 +8,29 @@ interface BarberRow {
   id: string;
   name_ar: string;
   name_en: string | null;
+  role_title: string | null;
+  specialty: string | null;
+  bio: string | null;
 }
 
-/** Active barbers in a shop. Exposes id + names only (no email/PII). */
+/** Active barbers in a shop. Exposes id + names + public profile (no email/PII). */
 export async function listActiveBarbers(shopId: string): Promise<BarberDTO[]> {
   const { rows } = await pool.query<BarberRow>(
-    `SELECT b.id, b.name_ar, b.name_en
+    `SELECT b.id, b.name_ar, b.name_en, b.role_title, b.specialty, b.bio
      FROM barbers b
      JOIN barber_shops bs ON bs.barber_id = b.id
      WHERE bs.shop_id = $1 AND bs.is_active AND b.is_active
      ORDER BY b.name_ar`,
     [shopId],
   );
-  return rows.map((r) => ({ id: r.id, nameAr: r.name_ar, nameEn: r.name_en }));
+  return rows.map((r) => ({
+    id: r.id,
+    nameAr: r.name_ar,
+    nameEn: r.name_en,
+    role: r.role_title,
+    specialty: r.specialty,
+    bio: r.bio,
+  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -32,11 +42,15 @@ interface BarberAdminRow {
   email: string;
   name_ar: string;
   name_en: string | null;
+  role_title: string | null;
+  specialty: string | null;
+  bio: string | null;
   is_active: boolean; // barber_shops.is_active for the queried shop
   created_at: Date;
 }
 
-const ADMIN_COLS = 'b.id, b.email, b.name_ar, b.name_en, bs.is_active, b.created_at';
+const ADMIN_COLS =
+  'b.id, b.email, b.name_ar, b.name_en, b.role_title, b.specialty, b.bio, bs.is_active, b.created_at';
 
 function toAdminDTO(r: BarberAdminRow): BarberAdminDTO {
   return {
@@ -44,6 +58,9 @@ function toAdminDTO(r: BarberAdminRow): BarberAdminDTO {
     email: r.email,
     nameAr: r.name_ar,
     nameEn: r.name_en,
+    role: r.role_title,
+    specialty: r.specialty,
+    bio: r.bio,
     isActive: r.is_active,
     createdAt: r.created_at.toISOString(),
   };
@@ -67,6 +84,9 @@ export interface CreateBarberInput {
   nameAr: string;
   nameEn: string | null;
   password: string;
+  role: string | null;
+  specialty: string | null;
+  bio: string | null;
 }
 
 /**
@@ -79,10 +99,10 @@ export async function createBarber(shopId: string, input: CreateBarberInput): Pr
     return await withTransaction(async (client) => {
       const passwordHash = await bcrypt.hash(input.password, 12);
       const res = await client.query<Omit<BarberAdminRow, 'is_active'>>(
-        `INSERT INTO barbers (email, password_hash, name_ar, name_en)
-         VALUES ($1, $2, $3, $4)
-         RETURNING id, email, name_ar, name_en, created_at`,
-        [input.email, passwordHash, input.nameAr, input.nameEn],
+        `INSERT INTO barbers (email, password_hash, name_ar, name_en, role_title, specialty, bio)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING id, email, name_ar, name_en, role_title, specialty, bio, created_at`,
+        [input.email, passwordHash, input.nameAr, input.nameEn, input.role, input.specialty, input.bio],
       );
       const barber = res.rows[0];
       if (!barber) throw new Error('barber INSERT returned no row');
@@ -101,25 +121,65 @@ export async function createBarber(shopId: string, input: CreateBarberInput): Pr
   }
 }
 
+export interface UpdateBarberInput {
+  /** barber_shops.is_active for THIS shop (membership toggle). */
+  isActive?: boolean | undefined;
+  // Person-level public profile. undefined = leave unchanged; null = clear.
+  role?: string | null | undefined;
+  specialty?: string | null | undefined;
+  bio?: string | null | undefined;
+}
+
 /**
- * Toggle a barber's membership in this shop (barber_shops.is_active). Deactivating
- * removes them from the public/bookable list and blocks new barber logins
- * (verifyBarberCredentials checks this flag). Returns null if no such membership.
+ * Owner update of a barber: membership toggle (barber_shops.is_active) and/or the
+ * public profile (role/specialty/bio on the person). The membership row is locked
+ * first — it both scopes the update to this shop (404 when the barber isn't
+ * linked here) and serializes concurrent edits. Returns null if no membership.
  */
-export async function setBarberActive(
+export async function updateBarber(
   shopId: string,
   barberId: string,
-  isActive: boolean,
+  patch: UpdateBarberInput,
 ): Promise<BarberAdminDTO | null> {
-  const { rows } = await pool.query<BarberAdminRow>(
-    `WITH upd AS (
-       UPDATE barber_shops SET is_active = $1
-       WHERE shop_id = $2 AND barber_id = $3
-       RETURNING barber_id, is_active
-     )
-     SELECT b.id, b.email, b.name_ar, b.name_en, upd.is_active, b.created_at
-     FROM upd JOIN barbers b ON b.id = upd.barber_id`,
-    [isActive, shopId, barberId],
-  );
-  return rows[0] ? toAdminDTO(rows[0]) : null;
+  return withTransaction(async (client) => {
+    const mem = await client.query(
+      `SELECT 1 FROM barber_shops WHERE barber_id = $1 AND shop_id = $2 FOR UPDATE`,
+      [barberId, shopId],
+    );
+    if (mem.rowCount === 0) return null;
+
+    if (patch.isActive !== undefined) {
+      await client.query(
+        `UPDATE barber_shops SET is_active = $1 WHERE barber_id = $2 AND shop_id = $3`,
+        [patch.isActive, barberId, shopId],
+      );
+    }
+
+    const sets: string[] = [];
+    const params: unknown[] = [];
+    const profileCols: Array<[string, string | null | undefined]> = [
+      ['role_title', patch.role],
+      ['specialty', patch.specialty],
+      ['bio', patch.bio],
+    ];
+    for (const [col, val] of profileCols) {
+      if (val !== undefined) {
+        params.push(val);
+        sets.push(`${col} = $${params.length}`);
+      }
+    }
+    if (sets.length > 0) {
+      params.push(barberId);
+      await client.query(`UPDATE barbers SET ${sets.join(', ')} WHERE id = $${params.length}`, params);
+    }
+
+    const { rows } = await client.query<BarberAdminRow>(
+      `SELECT ${ADMIN_COLS}
+       FROM barbers b
+       JOIN barber_shops bs ON bs.barber_id = b.id AND bs.shop_id = $2
+       WHERE b.id = $1`,
+      [barberId, shopId],
+    );
+    return rows[0] ? toAdminDTO(rows[0]) : null;
+  });
 }

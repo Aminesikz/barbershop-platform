@@ -30,6 +30,10 @@ export interface BarberDTO {
   id: string;
   nameAr: string;
   nameEn: string | null;
+  /** Owner-written public profile; null until the owner fills it in. */
+  role: string | null;
+  specialty: string | null;
+  bio: string | null;
 }
 
 /**
@@ -43,6 +47,9 @@ export interface BarberAdminDTO {
   email: string;
   nameAr: string;
   nameEn: string | null;
+  role: string | null;
+  specialty: string | null;
+  bio: string | null;
   isActive: boolean;
   createdAt: string; // ISO-8601 UTC
 }

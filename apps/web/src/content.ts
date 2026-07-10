@@ -1,32 +1,5 @@
 // Presentational marketing content for the public page (sample copy for the demo shop).
 
-export interface BarberMeta {
-  role: string;
-  specialty: string;
-  bio: string;
-}
-
-const ROLES = ['Master Barber', 'Senior Barber', 'Style Specialist', 'Beard Expert'];
-const SPECIALTIES = [
-  'Classic cuts & hot-towel shaves',
-  'Fades & modern styling',
-  'Beard sculpting & grooming',
-  'Scissor work & texturing',
-];
-const BIOS = [
-  'Fifteen years behind the chair — known for precise classic cuts and a flawless hot-towel shave.',
-  'Brings the latest fade and styling techniques, with a sharp eye for what suits each face.',
-  'A specialist in beard shaping and grooming rituals that keep you looking sharp for weeks.',
-  'Calm, meticulous and fast — the go-to for a clean scissor cut.',
-];
-export function barberMeta(i: number): BarberMeta {
-  return {
-    role: ROLES[i % ROLES.length]!,
-    specialty: SPECIALTIES[i % SPECIALTIES.length]!,
-    bio: BIOS[i % BIOS.length]!,
-  };
-}
-
 export const HIGHLIGHTS = [
   { icon: '✂️', title: 'Expert barbers', text: 'Skilled hands for cuts, fades and classic shaves.' },
   { icon: '📅', title: 'Book in a minute', text: 'Pick a barber and time online — no phone calls.' },

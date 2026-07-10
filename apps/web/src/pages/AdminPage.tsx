@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { Fragment, useCallback, useEffect, useState, type FormEvent } from 'react';
 import type {
   ServiceDTO,
   BarberDTO,
@@ -75,6 +75,9 @@ function BarbersAdmin({ onChange }: { onChange: () => void }) {
   const [nameAr, setNameAr] = useState('');
   const [nameEn, setNameEn] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('');
+  const [specialty, setSpecialty] = useState('');
+  const [bio, setBio] = useState('');
   const [busy, setBusy] = useState(false);
 
   const load = () => {
@@ -92,13 +95,24 @@ function BarbersAdmin({ onChange }: { onChange: () => void }) {
     try {
       await api('/api/barbers', {
         method: 'POST',
-        body: { email, nameAr, nameEn: nameEn || null, password },
+        body: {
+          email,
+          nameAr,
+          nameEn: nameEn || null,
+          password,
+          role: role || null,
+          specialty: specialty || null,
+          bio: bio || null,
+        },
       });
       toast('Barber added', 'success');
       setEmail('');
       setNameAr('');
       setNameEn('');
       setPassword('');
+      setRole('');
+      setSpecialty('');
+      setBio('');
       load();
       onChange();
     } catch (err) {
@@ -116,6 +130,39 @@ function BarbersAdmin({ onChange }: { onChange: () => void }) {
       onChange();
     } catch (err) {
       toast(errorMessage(err), 'error');
+    }
+  };
+
+  // Inline profile editor (role/specialty/bio) — one row at a time.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [eRole, setERole] = useState('');
+  const [eSpecialty, setESpecialty] = useState('');
+  const [eBio, setEBio] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  const startEdit = (b: BarberAdminDTO) => {
+    setEditingId(b.id);
+    setERole(b.role ?? '');
+    setESpecialty(b.specialty ?? '');
+    setEBio(b.bio ?? '');
+  };
+
+  const saveProfile = async (id: string) => {
+    setSavingProfile(true);
+    try {
+      // '' clears the field server-side, so sending all three is a full profile save.
+      await api(`/api/barbers/${id}`, {
+        method: 'PATCH',
+        body: { role: eRole, specialty: eSpecialty, bio: eBio },
+      });
+      toast('Profile saved', 'success');
+      setEditingId(null);
+      load();
+      onChange();
+    } catch (err) {
+      toast(errorMessage(err), 'error');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -154,6 +201,29 @@ function BarbersAdmin({ onChange }: { onChange: () => void }) {
           <Field label="Name (English, optional)">
             <Input value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="Samir" />
           </Field>
+          <Field label="Role (optional — shown on your page)">
+            <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Master Barber" maxLength={60} />
+          </Field>
+          <Field label="Specialty (optional)">
+            <Input
+              value={specialty}
+              onChange={(e) => setSpecialty(e.target.value)}
+              placeholder="Classic cuts & hot-towel shaves"
+              maxLength={100}
+            />
+          </Field>
+          <div className="grid-span-2">
+            <Field label="Short bio (optional)">
+              <textarea
+                className="input"
+                rows={2}
+                maxLength={400}
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Fifteen years behind the chair — precise cuts and a flawless shave."
+              />
+            </Field>
+          </div>
           <div>
             <Button type="submit" disabled={busy}>
               {busy ? 'Adding…' : 'Add barber'}
@@ -185,21 +255,77 @@ function BarbersAdmin({ onChange }: { onChange: () => void }) {
             </thead>
             <tbody>
               {barbers.map((b) => (
-                <tr key={b.id}>
-                  <td className="cell-strong">
-                    {b.nameEn ?? b.nameAr}
-                    {b.nameEn ? <span className="cell-muted"> · {b.nameAr}</span> : null}
-                  </td>
-                  <td className="cell-muted">{b.email}</td>
-                  <td>
-                    <Badge status={b.isActive ? 'confirmed' : 'cancelled'} label={b.isActive ? 'Active' : 'Inactive'} />
-                  </td>
-                  <td>
-                    <Button size="sm" variant={b.isActive ? 'danger' : 'ghost'} onClick={() => void toggle(b)}>
-                      {b.isActive ? 'Deactivate' : 'Reactivate'}
-                    </Button>
-                  </td>
-                </tr>
+                <Fragment key={b.id}>
+                  <tr>
+                    <td className="cell-strong">
+                      {b.nameEn ?? b.nameAr}
+                      {b.nameEn ? <span className="cell-muted"> · {b.nameAr}</span> : null}
+                      {b.role ? <div className="cell-muted">{b.role}</div> : null}
+                    </td>
+                    <td className="cell-muted">{b.email}</td>
+                    <td>
+                      <Badge status={b.isActive ? 'confirmed' : 'cancelled'} label={b.isActive ? 'Active' : 'Inactive'} />
+                    </td>
+                    <td>
+                      <div className="row-wrap">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => (editingId === b.id ? setEditingId(null) : startEdit(b))}
+                        >
+                          {editingId === b.id ? 'Close' : 'Edit profile'}
+                        </Button>
+                        <Button size="sm" variant={b.isActive ? 'danger' : 'ghost'} onClick={() => void toggle(b)}>
+                          {b.isActive ? 'Deactivate' : 'Reactivate'}
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                  {editingId === b.id ? (
+                    <tr>
+                      <td colSpan={4}>
+                        <div className="stack" style={{ padding: '6px 0 10px' }}>
+                          <div className="grid-2">
+                            <Field label="Role (shown on your page)">
+                              <Input
+                                value={eRole}
+                                onChange={(e) => setERole(e.target.value)}
+                                placeholder="Master Barber"
+                                maxLength={60}
+                              />
+                            </Field>
+                            <Field label="Specialty">
+                              <Input
+                                value={eSpecialty}
+                                onChange={(e) => setESpecialty(e.target.value)}
+                                placeholder="Classic cuts & hot-towel shaves"
+                                maxLength={100}
+                              />
+                            </Field>
+                          </div>
+                          <Field label="Short bio">
+                            <textarea
+                              className="input"
+                              rows={2}
+                              maxLength={400}
+                              value={eBio}
+                              onChange={(e) => setEBio(e.target.value)}
+                              placeholder="Fifteen years behind the chair — precise cuts and a flawless shave."
+                            />
+                          </Field>
+                          <div className="row-wrap">
+                            <Button size="sm" onClick={() => void saveProfile(b.id)} disabled={savingProfile}>
+                              {savingProfile ? 'Saving…' : 'Save profile'}
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : null}
+                </Fragment>
               ))}
             </tbody>
           </table></div>
