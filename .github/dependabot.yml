@@ -19,6 +19,33 @@ updates:
       # updates still arrive individually and immediately.
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # Deliberate-migration majors (triaged 2026-07-11) — each is a project
+      # with its own regression pass, not an auto-bump. Security advisories
+      # still surface regardless of these rules.
+      # Express 5 changes async-error/routing semantics the codebase is built
+      # around (asyncHandler exists because Express 4 doesn't catch async
+      # rejections).
+      - dependency-name: express
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/express'
+        update-types: ['version-update:semver-major']
+      # React 19 is a real migration; console + booking page are stable on 18.
+      - dependency-name: react
+        update-types: ['version-update:semver-major']
+      - dependency-name: react-dom
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/react-dom'
+        update-types: ['version-update:semver-major']
+      # tsc is the CI typecheck gate (strict, 3 workspaces) — majors are
+      # high blast radius for zero runtime benefit.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+      # Types must track the Node 22 LTS runtime, not the newest release.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: /
@@ -38,3 +65,8 @@ updates:
       day: monday
     cooldown:
       default-days: 7
+    ignore:
+      # Base images stay on the Node LTS line we run everywhere (22); odd
+      # releases (23, 25, …) are non-LTS and don't belong in production images.
+      - dependency-name: node
+        update-types: ['version-update:semver-major']
