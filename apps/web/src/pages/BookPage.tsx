@@ -10,7 +10,7 @@ import type {
 import { api, errorMessage } from '../api';
 import { useAuth } from '../app/AuthContext';
 import { useToast } from '../components/Toast';
-import { Avatar, Button, Card, Field, Input, Select, Spinner, Stars } from '../components/ui';
+import { Avatar, Button, Card, Field, Input, Spinner, Stars } from '../components/ui';
 import { fmtTime, fmtDateTime, todayPlus, uuid, serviceLabel, titleCase } from '../util';
 import { HIGHLIGHTS } from '../content';
 
@@ -121,40 +121,41 @@ export function BookPage() {
 
   return (
     <div className="page page-wide">
-      {/* Hero */}
+      {/* Hero — the storefront sign */}
       <section className="hero">
-        <div className="hero-eyebrow">★ Book online — no phone calls, no waiting</div>
+        <div className="hero-eyebrow">Book online — no phone calls, no waiting</div>
         <h1 className="hero-title">{shopName}</h1>
+        <div className="hero-rule" aria-hidden="true" />
         <p className="hero-sub">
           Sharp cuts, classic shaves, and a chair that’s always ready. Book your barber online in
           under a minute.
         </p>
         <div className="hero-meta">
-          <span className="chip">Open Sun–Thu · 9am – 8pm</span>
           {reviewSummary && reviewSummary.count > 0 && reviewSummary.average !== null ? (
-            <span className="chip">
-              <Stars value={reviewSummary.average} small /> {reviewSummary.average.toFixed(1)} ·{' '}
-              {reviewSummary.count} {reviewSummary.count === 1 ? 'review' : 'reviews'}
-            </span>
+            <>
+              <Stars value={reviewSummary.average} small />
+              <strong>{reviewSummary.average.toFixed(1)}</strong>
+              <span>
+                ({reviewSummary.count} {reviewSummary.count === 1 ? 'review' : 'reviews'})
+              </span>
+              <span className="sep">·</span>
+            </>
           ) : null}
-          <span className="chip">Walk-ins welcome</span>
+          <span>Open Sun–Thu 09:00–20:00</span>
+          <span className="sep">·</span>
+          <span>Walk-ins welcome</span>
         </div>
-        <div style={{ marginTop: 22 }}>
-          <Button className="btn-lg" onClick={scrollToBooking}>
-            Book an appointment
-          </Button>
-        </div>
+        <Button className="btn-lg" onClick={scrollToBooking}>
+          Book an appointment
+        </Button>
       </section>
 
       {/* Highlights */}
-      <div className="highlights" style={{ marginTop: 18 }}>
+      <div className="highlights" style={{ marginTop: 28 }}>
         {HIGHLIGHTS.map((h) => (
           <div className="highlight" key={h.title}>
-            <div className="ico">{h.icon}</div>
-            <div>
-              <h4>{h.title}</h4>
-              <p>{h.text}</p>
-            </div>
+            <h4>{h.title}</h4>
+            <p>{h.text}</p>
           </div>
         ))}
       </div>
@@ -167,120 +168,168 @@ export function BookPage() {
         {loadingMeta ? (
           <Spinner />
         ) : result ? (
-          <Card>
-            <div className="card-pad stack">
-              <div className="success-box">
-                <strong>You’re booked.</strong> {serviceLabel(result.service)} with{' '}
-                {result.barber.nameEn ?? result.barber.nameAr} — {fmtDateTime(result.start, tz)}.
+          <div className="success-box">
+            <div className="ticket-head">You’re booked</div>
+            <div className="ticket-rows">
+              <div className="ticket-row">
+                <span className="k">Service</span>
+                <span className="leader" aria-hidden="true" />
+                <span className="v">{serviceLabel(result.service)}</span>
               </div>
-              <div className="hint">
-                Status: {result.status}.{' '}
-                {email.trim()
-                  ? `A confirmation email is on its way to ${email.trim()}.`
-                  : 'The shop will confirm your appointment shortly.'}
+              <div className="ticket-row">
+                <span className="k">Barber</span>
+                <span className="leader" aria-hidden="true" />
+                <span className="v">{result.barber.nameEn ?? result.barber.nameAr}</span>
               </div>
-              <div>
-                <Button onClick={reset}>Book another</Button>
+              <div className="ticket-row">
+                <span className="k">When</span>
+                <span className="leader" aria-hidden="true" />
+                <span className="v">{fmtDateTime(result.start, tz)}</span>
               </div>
             </div>
-          </Card>
+            <p className="hint">
+              {email.trim()
+                ? `A confirmation email is on its way to ${email.trim()}.`
+                : 'The shop will confirm your appointment shortly.'}
+            </p>
+            <Button variant="ghost" onClick={reset}>
+              Book another
+            </Button>
+          </div>
         ) : (
-          <div className="stack">
-            <Card>
-              <div className="card-pad grid-2">
-                <Field label="Service">
-                  <Select value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
-                    <option value="">Choose a service…</option>
-                    {services.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {serviceLabel(s)} · {s.durationMin} min · {s.priceDzd} DZD
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                <Field label="Barber">
-                  <Select value={barberId} onChange={(e) => setBarberId(e.target.value)}>
-                    <option value="">Choose a barber…</option>
-                    {barbers.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.nameEn ?? b.nameAr}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                <Field label="Date">
-                  <Input
-                    type="date"
-                    value={date}
-                    min={todayPlus(0)}
-                    onChange={(e) => setDate(e.target.value)}
-                  />
-                </Field>
+          <Card>
+            {/* 01 — the price board */}
+            <div className="board-section">
+              <div className="step-head">
+                <span className="step-num">01</span>
+                <h3>Service</h3>
+                <span className="rule" aria-hidden="true" />
               </div>
-            </Card>
+              <div className="board-list">
+                {services.map((s) => (
+                  <button
+                    key={s.id}
+                    className={`board-row ${serviceId === s.id ? 'selected' : ''}`}
+                    aria-pressed={serviceId === s.id}
+                    onClick={() => setServiceId(s.id)}
+                  >
+                    <span className="board-name">{serviceLabel(s)}</span>
+                    <span className="board-meta">{s.durationMin} min</span>
+                    <span className="board-leader" aria-hidden="true" />
+                    <span className="board-price">{s.priceDzd} DZD</span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-            {serviceId && barberId && date ? (
-              <Card>
-                <div className="card-head">
-                  <div>
-                    <h2>Available times</h2>
-                    <p>Shop time ({tz})</p>
-                  </div>
-                </div>
-                <div className="card-pad">
-                  {slotsLoading ? (
-                    <Spinner />
-                  ) : slots.length === 0 ? (
-                    <div className="empty">No open slots for this day. Try another date or barber.</div>
-                  ) : (
-                    <div className="slot-grid">
-                      {slots.map((s) => (
-                        <button
-                          key={s.start}
-                          className={`slot ${selected === s.start ? 'selected' : ''}`}
-                          onClick={() => setSelected(s.start)}
-                        >
-                          {fmtTime(s.start, tz)}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </Card>
-            ) : null}
+            {/* 02 — the chair */}
+            <div className="board-section">
+              <div className="step-head">
+                <span className="step-num">02</span>
+                <h3>Barber</h3>
+                <span className="rule" aria-hidden="true" />
+              </div>
+              <div className="pick-row">
+                {barbers.map((b) => {
+                  const display = b.nameEn ?? b.nameAr;
+                  return (
+                    <button
+                      key={b.id}
+                      className={`pick ${barberId === b.id ? 'selected' : ''}`}
+                      aria-pressed={barberId === b.id}
+                      onClick={() => setBarberId(b.id)}
+                    >
+                      <Avatar name={display} />
+                      <span>
+                        <span className="pick-name">{display}</span>
+                        <span className="pick-sub">{b.role ?? 'Barber'}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-            {canPickDetails ? (
-              <Card>
-                <div className="card-head">
-                  <div>
-                    <h2>Your details</h2>
-                    <p>{selected ? fmtDateTime(selected, tz) : ''}</p>
-                  </div>
-                </div>
-                <div className="card-pad grid-2">
-                  <Field label="Full name">
-                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ali Mansouri" />
-                  </Field>
-                  <Field label="Phone (Algerian mobile)">
-                    <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0551234567" />
-                  </Field>
-                  <Field label="Email (optional — for your confirmation)">
+            {/* 03 — the appointment book */}
+            <div className="board-section">
+              <div className="step-head">
+                <span className="step-num">03</span>
+                <h3>Day &amp; time</h3>
+                <span className="rule" aria-hidden="true" />
+              </div>
+              <div className="stack">
+                <div style={{ maxWidth: 220 }}>
+                  <Field label={`Date — shop time (${tz})`}>
                     <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@example.com"
+                      type="date"
+                      value={date}
+                      min={todayPlus(0)}
+                      onChange={(e) => setDate(e.target.value)}
                     />
                   </Field>
                 </div>
-                <div className="card-pad" style={{ paddingTop: 0 }}>
-                  <Button onClick={() => void submit()} disabled={!canSubmit}>
-                    {submitting ? 'Booking…' : 'Confirm booking'}
-                  </Button>
+                {!serviceId || !barberId ? (
+                  <p className="hint" style={{ margin: 0 }}>
+                    Pick a service and a barber to see open times.
+                  </p>
+                ) : slotsLoading ? (
+                  <Spinner />
+                ) : slots.length === 0 ? (
+                  <div className="empty">No open slots for this day. Try another date or barber.</div>
+                ) : (
+                  <div className="slot-grid">
+                    {slots.map((s) => (
+                      <button
+                        key={s.start}
+                        className={`slot ${selected === s.start ? 'selected' : ''}`}
+                        aria-pressed={selected === s.start}
+                        onClick={() => setSelected(s.start)}
+                      >
+                        {fmtTime(s.start, tz)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 04 — who's coming */}
+            {canPickDetails ? (
+              <div className="board-section">
+                <div className="step-head">
+                  <span className="step-num">04</span>
+                  <h3>Your details</h3>
+                  <span className="rule" aria-hidden="true" />
                 </div>
-              </Card>
+                <div className="stack">
+                  <p className="hint" style={{ margin: 0 }}>
+                    {selected ? fmtDateTime(selected, tz) : ''}
+                  </p>
+                  <div className="grid-2">
+                    <Field label="Full name">
+                      <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ali Mansouri" />
+                    </Field>
+                    <Field label="Phone (Algerian mobile)">
+                      <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0551234567" />
+                    </Field>
+                    <Field label="Email (optional — for your confirmation)">
+                      <Input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="you@example.com"
+                      />
+                    </Field>
+                  </div>
+                  <div>
+                    <Button onClick={() => void submit()} disabled={!canSubmit}>
+                      {submitting ? 'Booking…' : 'Confirm booking'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
             ) : null}
-          </div>
+          </Card>
         )}
       </section>
 
