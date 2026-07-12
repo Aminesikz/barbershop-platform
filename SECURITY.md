@@ -34,7 +34,8 @@ are enforced in Postgres, not app code. See `CLAUDE.md` for the architecture.
   payloads, load) could hit Railway's platform, create garbage tenant data, or
   trip our own rate limiters against real customers, and may violate Railway's AUP.
 - **Active testing (DAST) is gated behind a dedicated staging environment** with
-  its own throwaway data and distinct secrets (a later roadmap phase).
+  its own throwaway data and distinct secrets (built 2026-07-12 — see the Phase 5
+  assessment below and `STAGING.md`).
 
 ---
 
@@ -237,6 +238,105 @@ mechanically without understanding what the rule protects against.
 - **Verdict:** dismissed as false positive via the code-scanning API, with this
   entry as the rationale. Revisit only if the middleware ever branches on
   unverified request data.
+
+### Assessment 2026-07-12 — Phase 5: dynamic testing on staging (isolated)
+
+The first **active** assessment. Run exclusively against a dedicated staging
+environment — never production — per the rules of engagement above.
+
+#### Environment
+
+A separate Railway project with its **own Postgres and Redis instances**, **distinct
+secrets** (never production's), and **junk tenant data**: two active shops
+(`alpha-cuts`, `beta-cuts`), one inactive shop (`ghost-cuts`), and — deliberately —
+**two barbers in `alpha-cuts`** so same-shop, barber-vs-barber isolation could be
+exercised, not just cross-tenant. Reached over its `*.up.railway.app` URL with the
+tenant chosen via the `X-Shop-Slug` header; `COOKIE_DOMAIN` left unset so the owner
+session cookie is host-only and replayable by tooling (the public-suffix constraint
+of `*.up.railway.app` otherwise blocks a `Domain=` cookie). Config **otherwise
+mirrors production** (`NODE_ENV=production`, helmet, `TRUST_PROXY_HOPS=1`, every rate
+limiter live) so findings transfer. Full rationale for the isolation in `STAGING.md`.
+
+The point of the isolation: every hostile action below (rate-limit floods, injection
+strings, forged tokens, oversized bodies) lands on throwaway data with throwaway
+secrets on infrastructure separate from prod — it cannot reach a real customer, a
+real secret, or production's usage budget.
+
+#### Method
+
+Hand-crafted, business-logic dynamic testing with `curl`/Node against the live API,
+and a `ws` client against the WebSocket upgrade — the app-specific catalog from the
+roadmap. Each check targets an invariant this app actually relies on, rather than a
+generic scanner signature. The automated scanner (OWASP ZAP) was scoped but not run;
+the coverage rationale is recorded below.
+
+#### Result — all controls held; no new vulnerabilities
+
+| # | Control probed | Concept | Observed |
+| --- | --- | --- | --- |
+| 1 | Cross-tenant isolation | a token/session for shop A must be powerless on shop B | alpha barber-JWT and owner-session against beta → `403`; a beta booking id acted on as alpha → `404` (not visible) |
+| 2 | Barber-own-bookings | a barber may act only on their own bookings, even within one shop | A1's listing never contains A2's `barber_id`; A1 confirming A2's booking → `404` |
+| 3 | Dual-auth, fail-closed | no fall-through; only a verified principal is granted | no auth / garbage token / tampered token → `401`; a barber JWT on an owner-only route → `401` |
+| 4 | Rate limiting + per-shop keying | one shop's flood must not drain another's budget | booking limiter (`5/min` per shop+IP) returned `429` under a burst; a booking on `beta` while `alpha` was capped still succeeded `201` |
+| 5 | Honeypot | a bot filling the hidden `website` field gets a fake success and nothing persists | fabricated `201`; **0 rows** in the DB for that idempotency key |
+| 6 | Idempotency | a replayed key returns the same booking, no duplicate | identical booking id on replay; **exactly 1 row** persisted |
+| 7 | Double-booking guard | overlap is the DB's job (`EXCLUDE USING gist`) | a second booking of an overlapping slot → `409` (distinct from the `429` rate-limit path) |
+| 8 | Input hardening | strict schemas + a body-size ceiling | unknown field → `400` (Zod `.strict()`); `>64 KB` body → `413` |
+| 9 | SQL injection | parameterized queries treat input as data, never SQL | injection in `X-Shop-Slug` → `404`, in a query param → `400` (Zod); `bookings` table intact afterward |
+| 10 | WebSocket origin guard | CSWSH — a foreign `Origin` must be refused even with a valid token | no-Origin and allowed-Origin upgrades open `101`; a foreign Origin is refused (the socket is destroyed → Railway's edge reports `502`); a missing token is refused |
+
+Two of these are worth internalizing as defense-in-depth patterns: the booking flow
+carries **two independent rate limits** (a `5/min` per shop+IP limiter *and* a
+`>3/hour` per shop+phone-HMAC cap), and the double-booking guarantee lives in a
+Postgres `EXCLUDE` constraint (`23P01` → `409`), not in app code — so it holds even if
+a validation path is ever bypassed.
+
+#### F-007 — A rejected WebSocket upgrade is indistinguishable from an edge error — **Informational**
+
+- **Observation:** when the origin guard (or a missing token) rejects a WS upgrade,
+  `wsAuth` calls `socket.destroy()` with no HTTP response. Behind Railway's edge that
+  surfaces to the client as a **`502`**, identical to a genuine infrastructure fault.
+- **Assessment:** not a security defect — the guard is working exactly as intended
+  (the connection never upgrades). It is an **observability** wrinkle: a `502` on the
+  WS endpoint is ambiguous between "auth correctly refused" and "backend down", which
+  can slow incident triage. Sending an explicit `401`/`403` handshake response before
+  destroying the socket would disambiguate, at the cost of leaking slightly more to an
+  attacker probing the endpoint.
+- **Verdict:** accepted as-is (informational). Recorded so a future `502` on the WS
+  path is not mistaken for an outage. Revisit only if WS handshake observability
+  becomes an operational pain point.
+
+#### Automated DAST (OWASP ZAP) — scoped, deferred (coverage rationale)
+
+The roadmap called for an OWASP ZAP baseline + active scan. On this target that would
+be **low-signal**: the API serves JSON with no HTML hyperlinks and publishes no
+OpenAPI spec, so ZAP's spider discovers essentially only `/` and `/health` and cannot
+reach the authenticated booking surface. A baseline pass would therefore mostly
+re-confirm the header/cookie posture already graded in the Phase 6 passive scan, and
+the active pass would have little to attack. The high-value surface — tenant
+isolation, dual-auth, the booking invariants — was covered by the manual catalog
+above instead, which is the higher-signal path for a business-logic-heavy API.
+
+The scan remains available to run against staging for completeness:
+
+```bash
+TARGET=https://<staging>.up.railway.app
+docker run --rm -v "$(pwd):/zap/wrk:rw" -t ghcr.io/zaproxy/zaproxy:stable \
+  zap-baseline.py  -t "$TARGET" -r baseline.html   # passive (also prod-safe)
+docker run --rm -v "$(pwd):/zap/wrk:rw" -t ghcr.io/zaproxy/zaproxy:stable \
+  zap-full-scan.py -t "$TARGET" -r full.html        # active — STAGING ONLY
+```
+
+The baseline (passive) profile is the only one that would be permitted against
+production under the rules of engagement; the active profile is staging-only.
+
+#### Conclusion
+
+No code changes required. The correctness-critical invariants (tenant isolation,
+double-booking, idempotency — all DB-enforced) and the fail-closed dual-auth layer
+were exercised under hostile input on a production-mirroring configuration and all
+behaved as designed. The single new entry, F-007, is an informational observability
+note, not a vulnerability.
 
 ---
 
